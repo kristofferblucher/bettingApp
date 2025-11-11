@@ -9,21 +9,28 @@ import {
   List,
   ListItem,
   Text,
+  HStack,
+  IconButton,
   useToast,
+  FormErrorMessage,
 } from "@chakra-ui/react";
+import { AddIcon, CloseIcon } from "@chakra-ui/icons";
 import type { Question } from "../types/types";
+import validate from "../utils/CouponMakerUtils";
 
 interface CouponMakerProps {
-  onQuestionAdded?: () => void; // lar AdminView oppdatere listen etterpå
+  onQuestionAdded?: () => void;
 }
 
 export default function CouponMaker({ onQuestionAdded }: CouponMakerProps) {
   const [questionText, setQuestionText] = useState("");
-  const [optionsText, setOptionsText] = useState("");
+  const [options, setOptions] = useState<string[]>(["", ""]); // starter med 2 felt
   const [questions, setQuestions] = useState<Question[]>([]);
   const toast = useToast();
 
-  // Hent spørsmål ved oppstart
+
+
+  // Hent spørsmål fra Supabase ved oppstart
   useEffect(() => {
     const fetchQuestions = async () => {
       const { data, error } = await supabase
@@ -39,16 +46,54 @@ export default function CouponMaker({ onQuestionAdded }: CouponMakerProps) {
     fetchQuestions();
   }, []);
 
-  // Legg til nytt spørsmål i Supabase
-  const addQuestion = async () => {
-    if (!questionText.trim() || !optionsText.trim()) return;
 
-    const options = optionsText.split(",").map((o) => o.trim());
+
+  // Oppdater et enkelt svaralternativ
+  const updateOption = (index: number, value: string) => {
+    const updated = [...options];
+    updated[index] = value;
+    setOptions(updated);
+  };
+
+
+  // Legg til et nytt svarfelt
+  const addOption = () => {
+    setOptions([...options, ""]);
+  };
+
+
+  // Fjern et svarfelt (må alltid ha minst to)
+  const removeOption = (index: number) => {
+    if (options.length <= 2) return;
+    setOptions(options.filter((_, i) => i !== index));
+  };
+
+
+
+
+  const addQuestion = async () => {
+    // Trim + filtrer alternativer først
+    const filteredOptions = options.map((o) => o.trim()).filter(Boolean);
+  
+    // Kjør validering
+    const errorMessage = validate(questionText, filteredOptions);
+    if (errorMessage) {
+      toast({
+        title: "Ugyldig spørsmål",
+        description: errorMessage,
+        status: "warning",
+        duration: 2500,
+        isClosable: true,
+      });
+      return;
+    }
+  
+    // Lagre i Supabase
     const { data, error } = await supabase
       .from("questions")
-      .insert([{ text: questionText, options }])
+      .insert([{ text: questionText, options: filteredOptions }])
       .select();
-
+  
     if (error) {
       console.error("Feil ved lagring:", error);
       toast({
@@ -58,24 +103,29 @@ export default function CouponMaker({ onQuestionAdded }: CouponMakerProps) {
         duration: 3000,
         isClosable: true,
       });
-    } else {
-      const newQuestion = data?.[0];
-      setQuestions((prev) => [...prev, newQuestion]);
-      setQuestionText("");
-      setOptionsText("");
-      toast({
-        title: "Spørsmål lagt til!",
-        status: "success",
-        duration: 2000,
-        isClosable: true,
-      });
-
-      // Gi beskjed til AdminView at et nytt spørsmål ble lagt til
-      if (onQuestionAdded) onQuestionAdded();
+      return;
     }
+  
+    // Oppdater lokalt
+    const newQuestion = data?.[0];
+    setQuestions((prev) => [...prev, newQuestion]);
+    setQuestionText("");
+    setOptions(["", ""]);
+  
+    toast({
+      title: "Spørsmål lagt til!",
+      status: "success",
+      duration: 2000,
+      isClosable: true,
+    });
+  
+    onQuestionAdded?.();
   };
 
-  // Tøm alle spørsmål (fra databasen)
+
+
+
+  // Slett alle spørsmål
   const clearAll = async () => {
     const { error } = await supabase.from("questions").delete().neq("id", 0);
     if (error) {
@@ -110,11 +160,40 @@ export default function CouponMaker({ onQuestionAdded }: CouponMakerProps) {
           value={questionText}
           onChange={(e) => setQuestionText(e.target.value)}
         />
-        <Input
-          placeholder="Svaralternativer (kommaseparert, f.eks. Ja, Nei)"
-          value={optionsText}
-          onChange={(e) => setOptionsText(e.target.value)}
-        />
+
+        <VStack spacing={2} align="stretch">
+          {options.map((opt, i) => (
+            <HStack key={i}>
+              <Input
+                placeholder={`Alternativ ${i + 1}`}
+                value={opt}
+                onChange={(e) => updateOption(i, e.target.value)}
+              />
+              {options.length > 2 && (
+                <IconButton
+                  aria-label="Fjern alternativ"
+                  icon={<CloseIcon />}
+                  size="sm"
+                  colorScheme="red"
+                  variant="ghost"
+                  onClick={() => removeOption(i)}
+                />
+              )}
+            </HStack>
+          ))}
+
+          <Button
+            leftIcon={<AddIcon />}
+            size="sm"
+            variant="outline"
+            colorScheme="blue"
+            alignSelf="flex-start"
+            onClick={addOption}
+          >
+            Legg til alternativ
+          </Button>
+        </VStack>
+
         <Button colorScheme="blue" onClick={addQuestion}>
           Legg til spørsmål
         </Button>
@@ -139,7 +218,7 @@ export default function CouponMaker({ onQuestionAdded }: CouponMakerProps) {
 
         {questions.length > 0 && (
           <Button mt={4} colorScheme="red" variant="outline" onClick={clearAll}>
-            Tøm alle spørsmål
+            Slett alle spørsmål
           </Button>
         )}
       </Box>

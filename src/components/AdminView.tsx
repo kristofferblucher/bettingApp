@@ -93,18 +93,28 @@ export default function AdminView() {
 
   return (
     <Box p={6}>
-      <VStack spacing={8} align="stretch">
-        <Heading size="lg">🧑‍💼 Adminpanel</Heading>
-
-        <CouponMaker onQuestionAdded={reloadQuestions} />
-
-        <Divider />
-
-        <Box>
+      <Heading size="lg" mb={6}>
+        🧑‍💼 Adminpanel
+      </Heading>
+  
+      
+      <Stack
+        direction={{ base: "column", md: "row" }} // 🔹 column på mobil, row på desktop
+        spacing={8}
+        align="flex-start"
+        justify="space-between"
+      >
+        {/* Lag kupong */}
+        <Box flex="1" minW={{ base: "100%", md: "50%" }}>
+          <CouponMaker onQuestionAdded={reloadQuestions} />
+        </Box>
+  
+        {/*Legg inn fasit */}
+        <Box flex="1" p={4} minW={{ base: "100%", md: "50%" }}>
           <Heading size="md" mb={4}>
-            🏁 Legg inn fasit
+            Legg inn fasit
           </Heading>
-
+  
           {questions.length === 0 ? (
             <Text color="gray.500">
               Ingen spørsmål i kupongen enda. Lag dem først.
@@ -122,7 +132,7 @@ export default function AdminView() {
                   <Text fontWeight="bold" mb={2}>
                     {q.text}
                   </Text>
-
+  
                   <RadioGroup
                     value={results[q.id] ?? ""}
                     onChange={(val) => handleAnswerChange(q.id, val)}
@@ -137,7 +147,7 @@ export default function AdminView() {
                   </RadioGroup>
                 </Box>
               ))}
-
+  
               <Stack direction="row" spacing={4}>
                 <Button
                   colorScheme="red"
@@ -153,7 +163,8 @@ export default function AdminView() {
             </VStack>
           )}
         </Box>
-      </VStack>
+      </Stack>
     </Box>
   );
+  
 }

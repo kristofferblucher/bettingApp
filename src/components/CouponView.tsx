@@ -100,7 +100,7 @@ export default function CouponView() {
   return (
     <Box p={6}>
       <VStack spacing={8} align="stretch">
-        <Heading size="lg">⚽ Tippekupong</Heading>
+        <Heading size="lg">⚽ Dagens tippekupong</Heading>
 
         {submitted ? (
           <Box
