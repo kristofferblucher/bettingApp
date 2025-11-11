@@ -1,11 +1,25 @@
 import { useState } from "react";
 import { Box, Button, HStack, VStack } from "@chakra-ui/react";
-import AdminGate from "./components/AdminGate";
-import CouponView from "./components/OldCouponView";
-import ResultsView from "./components/ResultsView";
+import AdminGate from "./components/Admin/AdminGate";
+import ActiveCouponList from "./components/User/ActiveCouponList";
+import ActiveCouponView from "./components/User/ActiveCouponView";
+import ResultsView from "./components/Result/ResultsView";
+import type { Coupon } from "./interfaces/interfaces";
 
 function App() {
   const [view, setView] = useState<"admin" | "coupon" | "results">("coupon");
+  const [selectedCoupon, setSelectedCoupon] = useState<Coupon | null>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  const handleCouponSelect = (coupon: Coupon) => {
+    setSelectedCoupon(coupon);
+  };
+
+  const handleBackToList = () => {
+    setSelectedCoupon(null);
+    // Trigger refresh av kuponglisten
+    setRefreshTrigger((prev) => prev + 1);
+  };
 
   return (
     <Box bg="gray.50" minH="100vh" p={6}>
@@ -13,7 +27,10 @@ function App() {
         <HStack spacing={4}>
           <Button
             colorScheme={view === "coupon" ? "blue" : "gray"}
-            onClick={() => setView("coupon")}
+            onClick={() => {
+              setView("coupon");
+              setSelectedCoupon(null);
+            }}
           >
             Kupong
           </Button>
@@ -32,7 +49,15 @@ function App() {
         </HStack>
 
         {view === "admin" && <AdminGate />}
-        {view === "coupon" && <CouponView />}
+        {view === "coupon" && (
+          <>
+            {!selectedCoupon ? (
+              <ActiveCouponList onSelect={handleCouponSelect} refreshTrigger={refreshTrigger} />
+            ) : (
+              <ActiveCouponView coupon={selectedCoupon} onBack={handleBackToList} />
+            )}
+          </>
+        )}
         {view === "results" && <ResultsView />}
       </VStack>
     </Box>

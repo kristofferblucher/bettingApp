@@ -7,8 +7,9 @@ import {
   VStack,
   useToast,
 } from "@chakra-ui/react";
-import { supabase } from "../database/supabaseClient";
-import { getDeviceId } from "../utils/deviceUtils";
+import { supabase } from "../../database/supabaseClient";
+import { getDeviceId } from "../../utils/deviceUtils";
+import type { Question, Coupon, Submission } from "../../interfaces/interfaces";
 
 
 

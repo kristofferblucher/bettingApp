@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Box, Button, Input, Text, VStack } from "@chakra-ui/react";
-import AdminView from "./AdminView";
+import AdminPanel from "./AdminPanel";
 
 export default function AdminGate() {
   const [pin, setPin] = useState("");
@@ -18,7 +18,7 @@ export default function AdminGate() {
   };
 
   if (authorized || localStorage.getItem("isAdmin") === "true") {
-    return <AdminView />;
+    return <AdminPanel />;
   }
 
   return (

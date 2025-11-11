@@ -10,7 +10,6 @@ import {
   Th,
   Thead,
   Tr,
-  VStack,
   Text,
   Card,
   CardHeader,
@@ -22,37 +21,79 @@ import {
   Flex,
   useToast,
 } from "@chakra-ui/react";
-import type { Answer, Result, Question, PlayerScore } from "../types/types";
-import { supabase } from "../database/supabaseClient";
+import type { Question, PlayerScore } from "../../types/types";
+import type { Submission, Coupon } from "../../interfaces/interfaces";
+import { supabase } from "../../database/supabaseClient";
+
+type ScoreWithId = PlayerScore & { submissionId: number };
 
 export default function ResultsView() {
-  const [scores, setScores] = useState<PlayerScore[]>([]);
+  const [scores, setScores] = useState<ScoreWithId[]>([]);
   const [hasResults, setHasResults] = useState(false);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [results, setResults] = useState<Record<string, string>>({});
   const [topScore, setTopScore] = useState(0);
+  const [coupon, setCoupon] = useState<Coupon | null>(null);
   const toast = useToast();
 
   useEffect(() => {
-    refresh();
+    fetchCoupon();
   }, []);
 
+  useEffect(() => {
+    if (coupon) {
+      refresh();
+    }
+  }, [coupon]);
+
+  const fetchCoupon = async () => {
+    // Hent den siste kupongen (sortert på deadline, descending)
+    const { data, error } = await supabase
+      .from("coupons")
+      .select("*")
+      .order("deadline", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      console.error("Feil ved henting av kupong:", error);
+      return;
+    }
+
+    if (data) {
+      setCoupon(data);
+    }
+  };
+
   const refresh = async () => {
+    if (!coupon) return;
+
     try {
-      const [{ data: qData, error: qError }, { data: aData, error: aError }, { data: rData, error: rError }] = await Promise.all([
-        supabase.from("questions").select("*").order("id", { ascending: true }),
-        supabase.from("answers").select("*"),
-        supabase.from("results").select("*"),
+      const [
+        { data: qData, error: qError },
+        { data: sData, error: sError },
+        { data: rData, error: rError },
+      ] = await Promise.all([
+        supabase
+          .from("questions")
+          .select("*")
+          .eq("coupon_id", coupon.id)
+          .order("id", { ascending: true }),
+        supabase
+          .from("submissions")
+          .select("*")
+          .eq("coupon_id", coupon.id),
+        supabase.from("results").select("*").eq("coupon_id", coupon.id),
       ]);
 
-      if (qError || aError || rError) throw qError || aError || rError;
+      if (qError || sError || rError) throw qError || sError || rError;
 
       setQuestions(qData || []);
 
       // Resultatene som objekt: { question_id: correct_answer }
       const resultMap =
         rData?.reduce((acc, r) => {
-          acc[r.question_id] = r.correct_answer;
+          acc[String(r.question_id)] = r.correct_answer;
           return acc;
         }, {} as Record<string, string>) || {};
 
@@ -61,20 +102,42 @@ export default function ResultsView() {
       const hasFasit = Object.keys(resultMap).length > 0;
       setHasResults(hasFasit);
 
-      // Beregn poeng for hver spiller
-      const allScores: PlayerScore[] = (aData || []).map((a) => {
+      // Beregn poeng for hver submission
+      const allScores: ScoreWithId[] = (sData || []).map((submission: Submission) => {
         let correct = 0;
         const total = qData?.length || 0;
 
-        if (hasFasit) {
+        if (hasFasit && submission.answers) {
           qData?.forEach((q) => {
-            const fasitSvar = resultMap[q.id];
-            const spillerSvar = a.answers[q.id];
+            const fasitSvar = resultMap[String(q.id)];
+            const spillerSvar = submission.answers[q.id];
             if (fasitSvar && spillerSvar === fasitSvar) correct++;
           });
         }
 
-        return { name: a.player_name, correct, total, answers: a.answers };
+        // Bruk player_name hvis det finnes, ellers bruk forkortet device_id
+        const displayName = submission.player_name || (() => {
+          const deviceId = submission.device_id;
+          return deviceId.length > 12 
+            ? `${deviceId.slice(0, 8)}...${deviceId.slice(-4)}`
+            : deviceId;
+        })();
+
+        // Konverter answers fra Record<number, string> til Record<string, string>
+        const answersAsString: Record<string, string> = {};
+        if (submission.answers) {
+          Object.entries(submission.answers).forEach(([key, value]) => {
+            answersAsString[String(key)] = value;
+          });
+        }
+
+        return {
+          name: displayName,
+          correct,
+          total,
+          answers: answersAsString,
+          submissionId: submission.id,
+        };
       });
 
       if (hasFasit) allScores.sort((a, b) => b.correct - a.correct);
@@ -93,6 +156,14 @@ export default function ResultsView() {
       });
     }
   };
+
+  if (!coupon) {
+    return (
+      <Box p={6}>
+        <Text color="gray.500">Laster kupong...</Text>
+      </Box>
+    );
+  }
 
   return (
     <Flex
@@ -113,9 +184,12 @@ export default function ResultsView() {
         shadow="sm"
         p={4}
       >
-        <Heading size="md" mb={4} textAlign="center">
+        <Heading size="md" mb={2} textAlign="center">
           🏆 Resultater
         </Heading>
+        <Text fontSize="sm" color="gray.600" mb={4} textAlign="center">
+          {coupon.title}
+        </Text>
 
         {scores.length === 0 ? (
           <Text color="gray.500" textAlign="center">
@@ -133,7 +207,7 @@ export default function ResultsView() {
               <Tbody>
                 {scores.map((s) => (
                   <Tr
-                    key={s.name}
+                    key={s.submissionId}
                     bg={
                       hasResults && s.correct === topScore ? "green.50" : undefined
                     }
@@ -173,7 +247,7 @@ export default function ResultsView() {
 
             return (
               <Card
-                key={s.name}
+                key={s.submissionId}
                 borderWidth="2px"
                 borderRadius="lg"
                 shadow="sm"
@@ -198,8 +272,8 @@ export default function ResultsView() {
                 <CardBody>
                   <Stack divider={<StackDivider />} spacing="3">
                     {questions.map((q) => {
-                      const spillerSvar = s.answers[q.id];
-                      const fasitSvar = results[q.id];
+                      const spillerSvar = s.answers[String(q.id)];
+                      const fasitSvar = results[String(q.id)];
                       const isCorrect =
                         hasResults && spillerSvar === fasitSvar;
 

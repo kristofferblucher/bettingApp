@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { supabase } from "../database/supabaseClient";
+import { supabase } from "../../database/supabaseClient";
 import {
   Box,
   Button,
@@ -12,17 +12,14 @@ import {
   HStack,
   IconButton,
   useToast,
-  FormErrorMessage,
 } from "@chakra-ui/react";
 import { AddIcon, CloseIcon } from "@chakra-ui/icons";
-import type { Question } from "../types/types";
-import validate from "../utils/CouponMakerUtils";
+import type { Question } from "../../types/types";
+import validate from "../../utils/couponMakerUtils";
+import type { CouponMakerProps } from "../../interfaces/interfaces";
 
-interface CouponMakerProps {
-  onQuestionAdded?: () => void;
-}
 
-export default function CouponMaker({ onQuestionAdded }: CouponMakerProps) {
+export default function CouponMaker({ couponId, onQuestionAdded }: CouponMakerProps) {
   const [questionText, setQuestionText] = useState("");
   const [options, setOptions] = useState<string[]>(["", ""]); // starter med 2 felt
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -32,20 +29,29 @@ export default function CouponMaker({ onQuestionAdded }: CouponMakerProps) {
 
   // Hent spørsmål fra Supabase ved oppstart
   useEffect(() => {
+    if (!couponId) return; // 👈 unngå spørring hvis ingen kupong valgt
+
+    // Nullstill state umiddelbart når kupong endres
+    setQuestions([]);
+    setQuestionText("");
+    setOptions(["", ""]);
+
     const fetchQuestions = async () => {
       const { data, error } = await supabase
         .from("questions")
         .select("*")
+        .eq("coupon_id", couponId) // 👈 hent kun spørsmål for valgt kupong
         .order("id", { ascending: true });
+
       if (error) {
         console.error("Feil ved henting av spørsmål:", error);
       } else {
         setQuestions(data || []);
       }
     };
-    fetchQuestions();
-  }, []);
 
+    fetchQuestions();
+  }, [couponId]);
 
 
   // Oppdater et enkelt svaralternativ
@@ -88,7 +94,10 @@ export default function CouponMaker({ onQuestionAdded }: CouponMakerProps) {
     // Lagre i Supabase
     const { data, error } = await supabase
       .from("questions")
-      .insert([{ text: questionText, options: filteredOptions }])
+      .insert([{ 
+        coupon_id: couponId,
+        text: questionText, 
+        options: filteredOptions }])
       .select();
   
     if (error) {
@@ -124,7 +133,7 @@ export default function CouponMaker({ onQuestionAdded }: CouponMakerProps) {
 
   // Slett alle spørsmål
   const clearAll = async () => {
-    const { error } = await supabase.from("questions").delete().neq("id", 0);
+    const { error } = await supabase.from("questions").delete().eq("coupon_id", couponId);
     if (error) {
       console.error("Feil ved tømming:", error);
       toast({
