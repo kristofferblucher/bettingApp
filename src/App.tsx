@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Box, Button, HStack, VStack } from "@chakra-ui/react";
 import AdminGate from "./components/AdminGate";
-import CouponView from "./components/CouponView";
+import CouponView from "./components/OldCouponView";
 import ResultsView from "./components/ResultsView";
 
 function App() {

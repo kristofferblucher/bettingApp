@@ -55,7 +55,6 @@ export default function CouponMaker({ onQuestionAdded }: CouponMakerProps) {
     setOptions(updated);
   };
 
-
   // Legg til et nytt svarfelt
   const addOption = () => {
     setOptions([...options, ""]);
@@ -67,8 +66,6 @@ export default function CouponMaker({ onQuestionAdded }: CouponMakerProps) {
     if (options.length <= 2) return;
     setOptions(options.filter((_, i) => i !== index));
   };
-
-
 
 
   const addQuestion = async () => {
