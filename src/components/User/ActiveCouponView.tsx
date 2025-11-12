@@ -18,6 +18,7 @@ import { supabase } from "../../database/supabaseClient";
 import { getDeviceId } from "../../utils/deviceUtils";
 import type { Question, Coupon, Submission } from "../../interfaces/interfaces";
 import { saveToStorage, loadFromStorage } from "../../utils/storage";
+import { canEditOrDelete } from "../../utils/userUtils";
 
 interface ActiveCouponViewProps {
   coupon: Coupon;
@@ -83,17 +84,10 @@ export default function ActiveCouponView({ coupon, onBack }: ActiveCouponViewPro
     fetchData();
   }, [coupon.id, deviceId]);
 
-  // Sjekk om det er mer enn 5 minutter til deadline
-  const canEditOrDelete = (): boolean => {
-    const deadline = new Date(coupon.deadline);
-    const now = new Date();
-    const fiveMinutes = 5 * 60 * 1000; // 5 minutter i millisekunder
-    return deadline.getTime() - now.getTime() > fiveMinutes;
-  };
 
   // Endre svar for et spørsmål
   const handleAnswer = (questionId: number, value: string) => {
-    if (!canEditOrDelete() && submission) {
+    if (!canEditOrDelete(coupon.deadline) && submission) {
       toast({
         title: "Ikke mulig å redigere",
         description: "Du kan ikke redigere mindre enn 5 minutter før fristen.",
@@ -108,7 +102,7 @@ export default function ActiveCouponView({ coupon, onBack }: ActiveCouponViewPro
 
   // Lagre eller oppdatere submission
   const handleSubmit = async () => {
-    if (!canEditOrDelete() && submission) {
+    if (!canEditOrDelete(coupon.deadline) && submission) {
       toast({
         title: "Ikke mulig å lagre",
         description: "Du kan ikke lagre endringer mindre enn 5 minutter før fristen.",
@@ -273,7 +267,7 @@ export default function ActiveCouponView({ coupon, onBack }: ActiveCouponViewPro
   const handleDelete = async () => {
     if (!submission) return;
 
-    if (!canEditOrDelete()) {
+    if (!canEditOrDelete(coupon.deadline)) {
       toast({
         title: "Ikke mulig å slette",
         description: "Du kan ikke slette mindre enn 5 minutter før fristen.",
@@ -328,7 +322,7 @@ export default function ActiveCouponView({ coupon, onBack }: ActiveCouponViewPro
   }
 
   const isBeforeDeadline = new Date(coupon.deadline) > new Date();
-  const canEdit = canEditOrDelete();
+  const canEdit = canEditOrDelete(coupon.deadline);
   const hasSubmitted = submission !== null;
 
   return (
