@@ -16,43 +16,51 @@ import {
   ModalFooter,
   ModalCloseButton,
   useDisclosure,
+  IconButton,
+  AlertDialog,
+  AlertDialogBody,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogContent,
+  AlertDialogOverlay,
 } from "@chakra-ui/react";
+import { DeleteIcon } from "@chakra-ui/icons";
 import { supabase } from "../../database/supabaseClient";
-
-interface Coupon {
-  id: string;
-  title: string;
-  deadline: string;
-}
+import { useRef } from "react";
+import type { Coupon } from "../../interfaces/interfaces";
 
 export default function AdminHome({ onSelect }: { onSelect: (coupon: Coupon) => void }) {
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [newTitle, setNewTitle] = useState("");
   const [newDeadline, setNewDeadline] = useState("");
+  const [couponToDelete, setCouponToDelete] = useState<Coupon | null>(null);
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onClose: onDeleteClose } = useDisclosure();
+  const cancelRef = useRef(null);
   const toast = useToast();
 
   // 🔹 Hent kuponger
-  useEffect(() => {
-    const fetchCoupons = async () => {
-      const { data, error } = await supabase
-        .from("coupons")
-        .select("*")
-        .order("created_at", { ascending: false });
+  const fetchCoupons = async () => {
+    const { data, error } = await supabase
+      .from("coupons")
+      .select("*")
+      .order("created_at", { ascending: false });
 
-      if (error) {
-        console.error(error);
-        toast({
-          title: "Kunne ikke hente kuponger",
-          description: error.message,
-          status: "error",
-          duration: 3000,
-          isClosable: true,
-        });
-      } else {
-        setCoupons(data || []);
-      }
-    };
+    if (error) {
+      console.error(error);
+      toast({
+        title: "Kunne ikke hente kuponger",
+        description: error.message,
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    } else {
+      setCoupons(data || []);
+    }
+  };
+
+  useEffect(() => {
     fetchCoupons();
   }, []);
 
@@ -97,7 +105,67 @@ export default function AdminHome({ onSelect }: { onSelect: (coupon: Coupon) => 
     onClose();
     setNewTitle("");
     setNewDeadline("");
+    
+    // Oppdater listen
+    await fetchCoupons();
+    
     onSelect(data); // 👉 åpner AdminView for den nye kupongen
+  };
+
+  // 🔹 Slett kupong
+  const handleDeleteClick = (coupon: Coupon) => {
+    setCouponToDelete(coupon);
+    onDeleteOpen();
+  };
+
+  const confirmDelete = async () => {
+    if (!couponToDelete) return;
+
+    console.log("Forsøker å slette kupong:", couponToDelete);
+
+    try {
+      // Slett kupong (cascade vil slette relaterte spørsmål, submissions og resultater)
+      const { data, error, count } = await supabase
+        .from("coupons")
+        .delete()
+        .eq("id", couponToDelete.id)
+        .select();
+
+      console.log("Delete response:", { data, error, count });
+
+      if (error) {
+        console.error("Supabase error:", error);
+        throw error;
+      }
+
+      if (!data || data.length === 0) {
+        console.warn("Ingen rader ble slettet. Sjekk RLS policies eller ID-match.");
+        throw new Error("Kunne ikke slette kupongen. Sjekk tilganger eller prøv på nytt.");
+      }
+
+      toast({
+        title: "Kupong slettet",
+        description: `"${couponToDelete.title}" er slettet.`,
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+
+      // Oppdater listen
+      await fetchCoupons();
+    } catch (err: any) {
+      console.error("Feil ved sletting:", err);
+      toast({
+        title: "Kunne ikke slette kupong",
+        description: err.message || "Ukjent feil",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+    } finally {
+      onDeleteClose();
+      setCouponToDelete(null);
+    }
   };
 
   return (
@@ -129,13 +197,23 @@ export default function AdminHome({ onSelect }: { onSelect: (coupon: Coupon) => 
                   Frist: {new Date(c.deadline).toLocaleString("no-NO")}
                 </Text>
               </Box>
-              <Button
-                size="sm"
-                colorScheme="blue"
-                onClick={() => onSelect(c)}
-              >
-                ✏️ Åpne kupong
-              </Button>
+              <HStack spacing={2}>
+                <Button
+                  size="sm"
+                  colorScheme="blue"
+                  onClick={() => onSelect(c)}
+                >
+                  ✏️ Åpne kupong
+                </Button>
+                <IconButton
+                  aria-label="Slett kupong"
+                  icon={<DeleteIcon />}
+                  size="sm"
+                  colorScheme="red"
+                  variant="ghost"
+                  onClick={() => handleDeleteClick(c)}
+                />
+              </HStack>
             </HStack>
           ))
         )}
@@ -173,6 +251,38 @@ export default function AdminHome({ onSelect }: { onSelect: (coupon: Coupon) => 
           </ModalFooter>
         </ModalContent>
       </Modal>
+
+      {/* 🗑️ Bekreftelsesdialog for sletting */}
+      <AlertDialog
+        isOpen={isDeleteOpen}
+        leastDestructiveRef={cancelRef as any}
+        onClose={onDeleteClose}
+        isCentered
+      >
+        <AlertDialogOverlay>
+          <AlertDialogContent>
+            <AlertDialogHeader fontSize="lg" fontWeight="bold">
+              Slett kupong
+            </AlertDialogHeader>
+
+            <AlertDialogBody>
+              Er du sikker på at du vil slette <strong>"{couponToDelete?.title}"</strong>?
+              <br />
+              <br />
+              Dette vil permanent slette kupongen og alle tilhørende spørsmål, fasit og innleveringer.
+            </AlertDialogBody>
+
+            <AlertDialogFooter>
+              <Button ref={cancelRef} onClick={onDeleteClose}>
+                Avbryt
+              </Button>
+              <Button colorScheme="red" onClick={confirmDelete} ml={3}>
+                Slett
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialogOverlay>
+      </AlertDialog>
     </Box>
   );
 }

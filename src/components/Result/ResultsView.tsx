@@ -21,11 +21,10 @@ import {
   Flex,
   useToast,
 } from "@chakra-ui/react";
-import type { Question, PlayerScore } from "../../types/types";
-import type { Submission, Coupon } from "../../interfaces/interfaces";
+import type { Question, Submission, Coupon } from "../../interfaces/interfaces";
+import type { ScoreWithId } from "../../types/types";
 import { supabase } from "../../database/supabaseClient";
-
-type ScoreWithId = PlayerScore & { submissionId: number };
+import { onResultsUpdate } from "../../utils/resultsUtils";
 
 export default function ResultsView() {
   const [scores, setScores] = useState<ScoreWithId[]>([]);
@@ -44,6 +43,28 @@ export default function ResultsView() {
     if (coupon) {
       refresh();
     }
+  }, [coupon]);
+
+  // Lytter på oppdateringer fra admin
+  useEffect(() => {
+    if (!coupon) return;
+
+    const cleanup = onResultsUpdate((updatedCouponId) => {
+      // Oppdater kun hvis det er vår kupong
+      if (updatedCouponId === coupon.id) {
+        console.log("✨ Admin har oppdatert fasit, refresher...");
+        toast({
+          title: "Fasit oppdatert!",
+          description: "Resultater er oppdatert av admin.",
+          status: "success",
+          duration: 2000,
+          isClosable: true,
+        });
+        refresh();
+      }
+    });
+
+    return cleanup;
   }, [coupon]);
 
   const fetchCoupon = async () => {
@@ -169,6 +190,7 @@ export default function ResultsView() {
     <Flex
       p={6}
       gap={8}
+      direction={{ base: "column", lg: "row" }}
       align="flex-start"
       justify="flex-start"
       bg="gray.50"
@@ -176,8 +198,9 @@ export default function ResultsView() {
     >
       <Box
         flex="1"
-        minW="300px"
-        maxW="360px"
+        w={{ base: "100%", lg: "auto" }}
+        minW={{ base: "auto", lg: "300px" }}
+        maxW={{ base: "100%", lg: "360px" }}
         bg="white"
         borderWidth="1px"
         borderRadius="md"
@@ -238,9 +261,21 @@ export default function ResultsView() {
       </Box>
 
   
-      <Box w="1px" bg="gray.300" alignSelf="stretch" borderRadius="full" />
+      <Box 
+        display={{ base: "none", lg: "block" }}
+        w="1px" 
+        bg="gray.300" 
+        alignSelf="stretch" 
+        borderRadius="full" 
+      />
 
-      <Box flex="2" minW="400px" maxW="900px" pr={6}>
+      <Box 
+        flex="2" 
+        w={{ base: "100%", lg: "auto" }}
+        minW={{ base: "auto", lg: "400px" }}
+        maxW={{ base: "100%", lg: "900px" }}
+        pr={{ base: 0, lg: 6 }}
+      >
         <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
           {scores.map((s) => {
             const isWinner = hasResults && s.correct === topScore;

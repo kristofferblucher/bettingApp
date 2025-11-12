@@ -14,10 +14,8 @@ import {
   useToast,
 } from "@chakra-ui/react";
 import { AddIcon, CloseIcon } from "@chakra-ui/icons";
-import type { Question } from "../../types/types";
+import type { Question, CouponMakerProps } from "../../interfaces/interfaces";
 import validate from "../../utils/couponMakerUtils";
-import type { CouponMakerProps } from "../../interfaces/interfaces";
-
 
 export default function CouponMaker({ couponId, onQuestionAdded }: CouponMakerProps) {
   const [questionText, setQuestionText] = useState("");

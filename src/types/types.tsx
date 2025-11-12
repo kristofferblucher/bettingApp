@@ -1,27 +1,14 @@
+// ============================================
+// UTILITY TYPES - Aliases, unions, mapped types
+// ============================================
 
+import type { PlayerScore } from "../interfaces/interfaces";
 
-export type Question = {
-  id: number;
-  text: string;
-  options: string[]; // f.eks. ["Ja", "Nei"]
-};
+// Type alias for result mapping
+export type Result = Record<string, string>;
 
-export type Coupon = {
-  id: number;
-  name: string;
-  questions: Question[];
-};
+// Extended PlayerScore with submission ID for React keys
+export type ScoreWithId = PlayerScore & { submissionId: number };
 
-export type Answer = {
-  name: string;
-  answers: Record<number, string>; // { 1: "Ja", 2: "Nei" }
-};
-
-export type PlayerScore = {
-  name: string;
-  correct: number;
-  total: number;
-  answers: Record<string, string>;
-};
-
-export type Result = Record<number, string>; // { 1: "Ja", 2: "Nei" }
+// Future utility types can go here
+// Example: export type CouponStatus = "active" | "expired" | "pending";

@@ -10,18 +10,16 @@ import {
   HStack,
   RadioGroup,
   Radio,
+  useToast,
 } from "@chakra-ui/react";
-import type { Question } from "../../types/types";
+import type { Question, AdminViewProps } from "../../interfaces/interfaces";
 import CouponMaker from "./CouponMaker";
-
-interface AdminViewProps {
-  coupon: { id: string; title: string };
-  onBack: () => void;
-}
+import { notifyResultsUpdate } from "../../utils/resultsUtils";
 
 export default function AdminView({ coupon, onBack }: AdminViewProps) {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [results, setResults] = useState<Record<string, string>>({});
+  const toast = useToast();
 
   // Hent spørsmål og fasit for valgt kupong
   useEffect(() => {
@@ -87,17 +85,58 @@ export default function AdminView({ coupon, onBack }: AdminViewProps) {
         },
       ]);
     }
+
+    // Notify ResultsView om oppdatering
+    notifyResultsUpdate(Number(coupon.id));
   };
 
   // Tøm fasit for denne kupongen
   const clearResults = async () => {
-    const { error } = await supabase
+    console.log("Prøver å tømme fasit for kupong:", coupon.id);
+
+    const { data, error } = await supabase
       .from("results")
       .delete()
-      .eq("coupon_id", coupon.id);
+      .eq("coupon_id", coupon.id)
+      .select();
 
-    if (error) console.error("Feil ved tømming av fasit:", error);
-    else setResults({});
+    console.log("Delete response:", { data, error });
+
+    if (error) {
+      console.error("Feil ved tømming av fasit:", error);
+      toast({
+        title: "Kunne ikke tømme fasit",
+        description: error.message || "Sjekk RLS policies i Supabase.",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      console.warn("Ingen rader ble slettet. Enten er det ingen fasit, eller RLS blokkerer.");
+      toast({
+        title: "Ingen fasit å tømme",
+        description: "Enten er det ingen fasit, eller RLS policies blokkerer sletting.",
+        status: "info",
+        duration: 4000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    setResults({});
+    toast({
+      title: "Fasit tømt!",
+      description: `${data.length} fasitsvar ble slettet.`,
+      status: "success",
+      duration: 2000,
+      isClosable: true,
+    });
+
+    // Notify ResultsView om oppdatering
+    notifyResultsUpdate(Number(coupon.id));
   };
 
   // Oppdater listen manuelt
@@ -186,7 +225,7 @@ export default function AdminView({ coupon, onBack }: AdminViewProps) {
                   Tøm fasit
                 </Button>
                 <Button colorScheme="gray" onClick={reloadQuestions}>
-                  Oppdater kupong
+                  Send inn fasit
                 </Button>
               </Stack>
             </VStack>

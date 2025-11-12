@@ -16,14 +16,9 @@ import {
 } from "@chakra-ui/react";
 import { supabase } from "../../database/supabaseClient";
 import { getDeviceId } from "../../utils/deviceUtils";
-import type { Question, Coupon, Submission } from "../../interfaces/interfaces";
+import type { Question, Submission, ActiveCouponViewProps } from "../../interfaces/interfaces";
 import { saveToStorage, loadFromStorage } from "../../utils/storage";
 import { canEditOrDelete } from "../../utils/userUtils";
-
-interface ActiveCouponViewProps {
-  coupon: Coupon;
-  onBack: () => void;
-}
 
 export default function ActiveCouponView({ coupon, onBack }: ActiveCouponViewProps) {
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -263,55 +258,6 @@ export default function ActiveCouponView({ coupon, onBack }: ActiveCouponViewPro
     }
   };
 
-  // Slett submission
-  const handleDelete = async () => {
-    if (!submission) return;
-
-    if (!canEditOrDelete(coupon.deadline)) {
-      toast({
-        title: "Ikke mulig å slette",
-        description: "Du kan ikke slette mindre enn 5 minutter før fristen.",
-        status: "warning",
-        duration: 3000,
-        isClosable: true,
-      });
-      return;
-    }
-
-    const { error } = await supabase
-      .from("submissions")
-      .delete()
-      .eq("id", submission.id);
-
-    if (error) {
-      console.error("Feil ved sletting:", error);
-      toast({
-        title: "Kunne ikke slette kupongen.",
-        description: error.message,
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-      return;
-    }
-
-    setSubmission(null);
-    setAnswers({});
-    
-    // Fjern fra localStorage
-    const submittedCoupons = loadFromStorage<number[]>("submittedCoupons", []);
-    saveToStorage(
-      "submittedCoupons",
-      submittedCoupons.filter((id) => id !== coupon.id)
-    );
-
-    toast({
-      title: "Kupong slettet.",
-      status: "info",
-      duration: 2000,
-      isClosable: true,
-    });
-  };
 
   if (isLoading) {
     return (
@@ -409,21 +355,14 @@ export default function ActiveCouponView({ coupon, onBack }: ActiveCouponViewPro
       </VStack>
 
       {isBeforeDeadline && (
-        <HStack mt={6} spacing={4}>
-          <Button
-            colorScheme="blue"
-            onClick={handleSubmit}
-            isDisabled={hasSubmitted && !canEdit}
-          >
-            {hasSubmitted ? "Oppdater kupong" : "Send inn kupong"}
-          </Button>
-          
-          {hasSubmitted && canEdit && (
-            <Button colorScheme="red" variant="outline" onClick={handleDelete}>
-              Slett kupong
-            </Button>
-          )}
-        </HStack>
+        <Button
+          mt={6}
+          colorScheme="blue"
+          onClick={handleSubmit}
+          isDisabled={hasSubmitted && !canEdit}
+        >
+          {hasSubmitted ? "Oppdater kupong" : "Send inn kupong"}
+        </Button>
       )}
 
       {hasSubmitted && !canEdit && isBeforeDeadline && (
