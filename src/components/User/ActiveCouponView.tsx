@@ -361,7 +361,7 @@ export default function ActiveCouponView({ coupon, onBack }: ActiveCouponViewPro
       {hasSubmitted && canEdit && (
         <Box mb={4} p={3} bg="blue.50" borderRadius="md" borderWidth="1px" borderColor="blue.200">
           <Text color="blue.800" fontSize="sm">
-            ℹ️ Du har levert denne kupongen. Du kan redigere eller slette helt frem til 5 minutter før fristen.
+            Kupongen din er levert. Du kan redigere eller slette svaret ditt helt frem til deadline.
           </Text>
         </Box>
       )}
