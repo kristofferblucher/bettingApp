@@ -37,7 +37,7 @@ export interface PlayerScore {
 // ============================================
 
 export interface CouponMakerProps {
-  couponId: string;
+  couponId: number;
   onQuestionAdded?: () => void;
 }
 
