@@ -4,10 +4,11 @@ import AdminGate from "./components/Admin/AdminGate";
 import ActiveCouponList from "./components/User/ActiveCouponList";
 import ActiveCouponView from "./components/User/ActiveCouponView";
 import ResultsView from "./components/Result/ResultsView";
+import StatsView from "./components/Stats/StatsView";
 import type { Coupon } from "./interfaces/interfaces";
 
 function App() {
-  const [view, setView] = useState<"admin" | "coupon" | "results">("coupon");
+  const [view, setView] = useState<"admin" | "coupon" | "stats" | "results">("coupon");
   const [selectedCoupon, setSelectedCoupon] = useState<Coupon | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
@@ -35,6 +36,12 @@ function App() {
             Kupong
           </Button>
           <Button
+            colorScheme={view === "stats" ? "blue" : "gray"}
+            onClick={() => setView("stats")}
+          >
+            Statistikk
+          </Button>
+          <Button
             colorScheme={view === "results" ? "blue" : "gray"}
             onClick={() => setView("results")}
           >
@@ -58,6 +65,7 @@ function App() {
             )}
           </>
         )}
+        {view === "stats" && <StatsView />}
         {view === "results" && <ResultsView />}
       </VStack>
     </Box>

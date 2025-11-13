@@ -15,6 +15,7 @@ import {
 import type { Question, AdminViewProps } from "../../interfaces/interfaces";
 import CouponMaker from "./CouponMaker";
 import { notifyResultsUpdate } from "../../utils/resultsUtils";
+import { updateWinners } from "../../utils/statsUtils";
 
 export default function AdminView({ coupon, onBack }: AdminViewProps) {
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -86,6 +87,9 @@ export default function AdminView({ coupon, onBack }: AdminViewProps) {
       ]);
     }
 
+    // Oppdater vinnere når fasit endres
+    await updateWinners(coupon.id);
+
     // Notify ResultsView om oppdatering
     notifyResultsUpdate(Number(coupon.id));
   };
@@ -134,6 +138,9 @@ export default function AdminView({ coupon, onBack }: AdminViewProps) {
       duration: 2000,
       isClosable: true,
     });
+
+    // Oppdater vinnere når fasit tømmes (alle blir ikke-vinnere)
+    await updateWinners(coupon.id);
 
     // Notify ResultsView om oppdatering
     notifyResultsUpdate(Number(coupon.id));

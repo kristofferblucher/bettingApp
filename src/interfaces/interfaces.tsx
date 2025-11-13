@@ -22,6 +22,7 @@ export interface Submission {
   player_name?: string;
   answers: Record<number, string>;
   created_at: string;
+  is_winner?: boolean;
 }
 
 export interface PlayerScore {
