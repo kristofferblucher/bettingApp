@@ -104,7 +104,6 @@ export const getAllPlayersStats = async () => {
       const sortedSubs = [...subs].sort((a, b) => 
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       );
-      const latestPlayerName = sortedSubs[0].player_name || deviceId;
       
       // Vis player_name hvis det finnes, ellers forkortet device_id
       const displayName = sortedSubs[0].player_name || (
