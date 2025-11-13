@@ -6,7 +6,7 @@ export default function AdminGate() {
   const [pin, setPin] = useState("");
   const [authorized, setAuthorized] = useState(false);
 
-  const correctPin = "1886"; 
+  const correctPin = "1886199820022004"; 
 
   const handleSubmit = () => {
     if (pin === correctPin) {
