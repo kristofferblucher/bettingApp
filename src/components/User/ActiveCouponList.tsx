@@ -137,7 +137,7 @@ export default function ActiveCouponList({ onSelect, refreshTrigger = 0 }: Activ
   };
 
   if (coupons.length === 0) {
-    return <Text color="gray.500">Ingen aktive kuponger akkurat nå.</Text>;
+    return <Text color="gray.500">Det er ingen aktive kuponger du kan tippe på akkurat nå.</Text>;
   }
 
   return (

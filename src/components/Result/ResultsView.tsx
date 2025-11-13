@@ -26,29 +26,25 @@ import type { ScoreWithId } from "../../types/types";
 import { supabase } from "../../database/supabaseClient";
 import { onResultsUpdate } from "../../utils/resultsUtils";
 
-export default function ResultsView() {
+interface ResultsViewProps {
+  coupon: Coupon;
+  onBack: () => void;
+}
+
+export default function ResultsView({ coupon, onBack }: ResultsViewProps) {
   const [scores, setScores] = useState<ScoreWithId[]>([]);
   const [hasResults, setHasResults] = useState(false);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [results, setResults] = useState<Record<string, string>>({});
   const [topScore, setTopScore] = useState(0);
-  const [coupon, setCoupon] = useState<Coupon | null>(null);
   const toast = useToast();
 
   useEffect(() => {
-    fetchCoupon();
-  }, []);
-
-  useEffect(() => {
-    if (coupon) {
-      refresh();
-    }
-  }, [coupon]);
+    refresh();
+  }, [coupon.id]);
 
   // Lytter på oppdateringer fra admin
   useEffect(() => {
-    if (!coupon) return;
-
     const cleanup = onResultsUpdate((updatedCouponId) => {
       // Oppdater kun hvis det er vår kupong
       if (updatedCouponId === coupon.id) {
@@ -65,29 +61,9 @@ export default function ResultsView() {
     });
 
     return cleanup;
-  }, [coupon]);
-
-  const fetchCoupon = async () => {
-    // Hent den siste kupongen (sortert på deadline, descending)
-    const { data, error } = await supabase
-      .from("coupons")
-      .select("*")
-      .order("deadline", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (error) {
-      console.error("Feil ved henting av kupong:", error);
-      return;
-    }
-
-    if (data) {
-      setCoupon(data);
-    }
-  };
+  }, [coupon.id]);
 
   const refresh = async () => {
-    if (!coupon) return;
 
     try {
       const [
@@ -178,38 +154,35 @@ export default function ResultsView() {
     }
   };
 
-  if (!coupon) {
-    return (
-      <Box p={6}>
-        <Text color="gray.500">Laster kupong...</Text>
-      </Box>
-    );
-  }
-
   return (
-    <Flex
-      p={6}
-      gap={8}
-      direction={{ base: "column", lg: "row" }}
-      align="flex-start"
-      justify="flex-start"
-      bg="gray.50"
-      minH="100vh"
-    >
-      <Box
-        flex="1"
-        w={{ base: "100%", lg: "auto" }}
-        minW={{ base: "auto", lg: "300px" }}
-        maxW={{ base: "100%", lg: "360px" }}
-        bg="white"
-        borderWidth="1px"
-        borderRadius="md"
-        shadow="sm"
-        p={4}
+    <Box>
+      <Button onClick={onBack} mb={4} variant="outline">
+        ← Tilbake til liste
+      </Button>
+      
+      <Flex
+        p={6}
+        gap={8}
+        direction={{ base: "column", lg: "row" }}
+        align="flex-start"
+        justify="flex-start"
+        bg="gray.50"
+        minH="100vh"
       >
-        <Heading size="md" mb={4} textAlign="center">
-          🏆 Resultater for kupongen: {coupon.title}
-        </Heading>
+        <Box
+          flex="1"
+          w={{ base: "100%", lg: "auto" }}
+          minW={{ base: "auto", lg: "300px" }}
+          maxW={{ base: "100%", lg: "360px" }}
+          bg="white"
+          borderWidth="1px"
+          borderRadius="md"
+          shadow="sm"
+          p={4}
+        >
+          <Heading size="md" mb={4} textAlign="center">
+            🏆 Resultater for kupongen: {coupon.title}
+          </Heading>
 
         {scores.length === 0 ? (
           <Text color="gray.500" textAlign="center">
@@ -345,5 +318,6 @@ export default function ResultsView() {
         </SimpleGrid>
       </Box>
     </Flex>
+    </Box>
   );
 }
