@@ -118,16 +118,20 @@ export const getAllPlayersStats = async () => {
  */
 export const updateWinners = async (couponId: number | string) => {
   try {
+    console.log("🔄 updateWinners kalles for kupong:", couponId, "Type:", typeof couponId);
+    
     // Hent alle submissions for kupongen
     const { data: submissions, error: subError } = await supabase
       .from("submissions")
       .select("*")
       .eq("coupon_id", couponId);
 
+    console.log("📦 Submissions:", submissions?.length, "Error:", subError);
+
     if (subError) throw subError;
 
     if (!submissions || submissions.length === 0) {
-      console.log("Ingen submissions for denne kupongen");
+      console.log("⚠️ Ingen submissions for denne kupongen");
       return;
     }
 
@@ -137,6 +141,8 @@ export const updateWinners = async (couponId: number | string) => {
       .select("*")
       .eq("coupon_id", couponId);
 
+    console.log("❓ Questions:", questions?.length, "Error:", qError);
+
     if (qError) throw qError;
 
     // Hent alle resultater for kupongen
@@ -145,48 +151,73 @@ export const updateWinners = async (couponId: number | string) => {
       .select("*")
       .eq("coupon_id", couponId);
 
+    console.log("✅ Results:", results?.length, "Error:", rError);
+    console.log("📋 Results data:", results);
+
     if (rError) throw rError;
 
     // Hvis det ikke er fasit enda, sett alle til is_winner = false
     if (!results || results.length === 0) {
-      console.log("Ingen fasit enda, setter alle is_winner til false");
-      await supabase
+      console.log("⚠️ Ingen fasit enda, setter alle is_winner til false");
+      const { data: updateData, error: updateError } = await supabase
         .from("submissions")
         .update({ is_winner: false })
-        .eq("coupon_id", couponId);
+        .eq("coupon_id", couponId)
+        .select();
+      
+      console.log("📝 Updated submissions to false:", updateData?.length, "Error:", updateError);
       return;
     }
 
     // Beregn score for alle submissions
-    const scores = submissions.map((sub: Submission) => ({
-      id: sub.id,
-      score: calculatePlayerScore(sub, questions || [], results || []),
-    }));
+    console.log("🧮 Beregner score for submissions...");
+    const scores = submissions.map((sub: Submission) => {
+      const score = calculatePlayerScore(sub, questions || [], results || []);
+      console.log(`  Spiller ${sub.player_name || sub.device_id.slice(0, 8)}: ${score} poeng`);
+      return {
+        id: sub.id,
+        score,
+      };
+    });
 
     // Finn beste score
     const topScore = Math.max(...scores.map((s) => s.score));
+    console.log("🏆 Beste score:", topScore);
 
     // Finn alle submissions med beste score
     const winnerIds = scores.filter((s) => s.score === topScore).map((s) => s.id);
+    console.log("👥 Vinner-IDer:", winnerIds);
 
     // Oppdater is_winner for alle submissions
     // Først sett alle til false
-    await supabase
+    console.log("📝 Setter alle is_winner til false...");
+    const { data: falseData, error: falseError } = await supabase
       .from("submissions")
       .update({ is_winner: false })
-      .eq("coupon_id", couponId);
+      .eq("coupon_id", couponId)
+      .select();
+
+    console.log("  Oppdaterte rader (false):", falseData?.length, "Error:", falseError);
 
     // Så sett vinnerne til true
     if (winnerIds.length > 0) {
-      await supabase
+      console.log("📝 Setter vinnere til true...");
+      const { data: trueData, error: trueError } = await supabase
         .from("submissions")
         .update({ is_winner: true })
-        .in("id", winnerIds);
+        .in("id", winnerIds)
+        .select();
+
+      console.log("  Oppdaterte rader (true):", trueData?.length, "Error:", trueError);
+      
+      if (trueError) {
+        console.error("❌ Feil ved setting av vinnere:", trueError);
+      }
     }
 
     console.log(`✅ Oppdatert vinnere for kupong ${couponId}: ${winnerIds.length} vinnere med ${topScore} poeng`);
   } catch (err) {
-    console.error("Feil ved oppdatering av vinnere:", err);
+    console.error("❌ Feil ved oppdatering av vinnere:", err);
   }
 };
 

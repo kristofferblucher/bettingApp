@@ -42,7 +42,7 @@ export interface CouponMakerProps {
 }
 
 export interface AdminViewProps {
-  coupon: { id: string; title: string };
+  coupon: Coupon;
   onBack: () => void;
 }
 

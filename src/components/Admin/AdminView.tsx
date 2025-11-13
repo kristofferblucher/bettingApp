@@ -65,10 +65,13 @@ export default function AdminView({ coupon, onBack }: AdminViewProps) {
     const updated = { ...results, [questionId]: value };
     setResults(updated);
 
+    // Konverter questionId til number for database
+    const questionIdNum = Number(questionId);
+
     const { data: existing } = await supabase
       .from("results")
       .select("id")
-      .eq("question_id", questionId)
+      .eq("question_id", questionIdNum)
       .eq("coupon_id", coupon.id)
       .maybeSingle();
 
@@ -81,7 +84,7 @@ export default function AdminView({ coupon, onBack }: AdminViewProps) {
       await supabase.from("results").insert([
         {
           coupon_id: coupon.id,
-          question_id: questionId,
+          question_id: questionIdNum,
           correct_answer: value,
         },
       ]);
@@ -143,10 +146,10 @@ export default function AdminView({ coupon, onBack }: AdminViewProps) {
     await updateWinners(coupon.id);
 
     // Notify ResultsView om oppdatering
-    notifyResultsUpdate(Number(coupon.id));
+    notifyResultsUpdate(coupon.id);
   };
 
-  // Oppdater listen manuelt
+  // Send inn fasit og beregn vinnere
   const reloadQuestions = async () => {
     const { data, error } = await supabase
       .from("questions")
@@ -154,8 +157,33 @@ export default function AdminView({ coupon, onBack }: AdminViewProps) {
       .eq("coupon_id", coupon.id)
       .order("id", { ascending: true });
 
-    if (error) console.error("Feil ved henting av spørsmål:", error);
-    else setQuestions(data || []);
+    if (error) {
+      console.error("Feil ved henting av spørsmål:", error);
+      toast({
+        title: "Feil",
+        description: "Kunne ikke oppdatere spørsmål.",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+    
+    setQuestions(data || []);
+
+    // Beregn vinnere basert på fasit
+    await updateWinners(coupon.id);
+
+    // Notify ResultsView om oppdatering
+    notifyResultsUpdate(coupon.id);
+
+    toast({
+      title: "Fasit sendt inn!",
+      description: "Vinnere er beregnet.",
+      status: "success",
+      duration: 2000,
+      isClosable: true,
+    });
   };
 
   return (
