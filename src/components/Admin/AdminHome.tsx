@@ -77,9 +77,12 @@ export default function AdminHome({ onSelect }: { onSelect: (coupon: Coupon) => 
       return;
     }
 
+    const localDate = new Date(newDeadline); 
+    const deadlineUTC = localDate.toISOString(); 
+    
     const { data, error } = await supabase
       .from("coupons")
-      .insert([{ title: newTitle.trim(), deadline: newDeadline }])
+      .insert([{ title: newTitle.trim(), deadline: deadlineUTC }])
       .select()
       .single();
 
@@ -219,7 +222,7 @@ export default function AdminHome({ onSelect }: { onSelect: (coupon: Coupon) => 
         )}
       </VStack>
 
-      {/* 🧱 Modal for ny kupong */}
+      {/*  Modal for ny kupong */}
       <Modal isOpen={isOpen} onClose={onClose} isCentered>
         <ModalOverlay />
         <ModalContent>
