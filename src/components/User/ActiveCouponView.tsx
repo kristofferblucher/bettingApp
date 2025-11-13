@@ -135,9 +135,19 @@ export default function ActiveCouponView({ coupon, onBack }: ActiveCouponViewPro
     saveToStorage("playerName", playerName.trim());
 
     try {
+      // 🔄 Synkroniser player_name på tvers av ALLE submissions fra denne device_id
+      const { error: syncError } = await supabase
+        .from("submissions")
+        .update({ player_name: playerName.trim() })
+        .eq("device_id", deviceId);
+
+      if (syncError && !syncError.message.includes("player_name") && syncError.code !== "42703") {
+        console.warn("Kunne ikke synkronisere navn:", syncError);
+        // Fortsett likevel, ikke krasj
+      }
+
       if (submission) {
-        // Oppdater eksisterende submission
-        // Prøv å oppdatere med player_name, hvis det feiler, prøv uten (fallback)
+        // Oppdater eksisterende submission (svar)
         let updateData: any = { answers };
         
         // Prøv å legge til player_name hvis kolonnen finnes

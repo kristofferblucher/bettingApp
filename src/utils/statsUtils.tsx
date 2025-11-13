@@ -85,22 +85,36 @@ export const getAllPlayersStats = async () => {
 
     if (rError) throw rError;
 
-    // Grupper submissions per spiller
+    // Grupper submissions per device_id (unik spiller)
     const playerMap = new Map<string, Submission[]>();
 
     (submissions || []).forEach((sub: Submission) => {
-      const playerName = sub.player_name || sub.device_id;
-      if (!playerMap.has(playerName)) {
-        playerMap.set(playerName, []);
+      const deviceId = sub.device_id;
+      if (!playerMap.has(deviceId)) {
+        playerMap.set(deviceId, []);
       }
-      playerMap.get(playerName)!.push(sub);
+      playerMap.get(deviceId)!.push(sub);
     });
 
     // Beregn stats for hver spiller
-    const playersStats = Array.from(playerMap.entries()).map(([name, subs]) => {
+    const playersStats = Array.from(playerMap.entries()).map(([deviceId, subs]) => {
       const stats = aggregatePlayerStats(subs, questions || [], results || []);
+      
+      // Finn nyeste player_name for denne device_id (basert på created_at)
+      const sortedSubs = [...subs].sort((a, b) => 
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+      const latestPlayerName = sortedSubs[0].player_name || deviceId;
+      
+      // Vis player_name hvis det finnes, ellers forkortet device_id
+      const displayName = sortedSubs[0].player_name || (
+        deviceId.length > 12 
+          ? `${deviceId.slice(0, 8)}...${deviceId.slice(-4)}`
+          : deviceId
+      );
+      
       return {
-        name,
+        name: displayName,
         ...stats,
       };
     });
