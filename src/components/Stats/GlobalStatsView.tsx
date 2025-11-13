@@ -407,14 +407,10 @@ export default function GlobalStatsView() {
           <ModalBody pb={6}>
             <VStack spacing={4} align="stretch">
               <Text color="gray.600" fontSize="sm">
-                Spillstatistikk-siden viser tre forskjellige leaderboards som rangerer
-                spillere basert på ulike kriterier.
+                Spillstatistikk-siden viser flere forskjellige leaderboards som rangerer
+                spillere basert på ulike kriterier. Det vil komme flere statistikker etterhvert.
               </Text>
-              
-              <Text color="gray.600" fontSize="sm">
-                Hver tabell viser topp 10 spillere, med medaljer for de tre beste
-                (🥇🥈🥉).
-              </Text>
+      
 
               <Box pt={3} borderTopWidth="1px">
                 <Text color="gray.600" fontSize="sm" fontWeight="medium">
@@ -510,11 +506,6 @@ export default function GlobalStatsView() {
                 <br />
                 Tallene vises som "X / Y" hvor X er antall riktige svar og Y er totalt
                 antall spørsmål besvart.
-              </Text>
-
-              <Text color="gray.600" fontSize="sm">
-                Dette leaderboardet favoriserer spillere som har deltatt på mange kuponger
-                og konsekvent svart riktig.
               </Text>
             </VStack>
           </ModalBody>
