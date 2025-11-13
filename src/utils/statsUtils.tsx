@@ -33,15 +33,20 @@ export const aggregatePlayerStats = (
 ) => {
   let totalCorrect = 0;
   let totalQuestions = 0;
+  let totalPlayed = 0;
   let wins = 0;
 
   submissions.forEach((sub) => {
     const couponQuestions = allQuestions.filter((q) => q.coupon_id === sub.coupon_id);
     const couponResults = allResults.filter((r) => r.coupon_id === sub.coupon_id);
 
-    const score = calculatePlayerScore(sub, couponQuestions, couponResults);
-    totalCorrect += score;
-    totalQuestions += couponQuestions.length;
+    // Kun tell submissions fra kuponger som har fasit
+    if (couponResults.length > 0) {
+      const score = calculatePlayerScore(sub, couponQuestions, couponResults);
+      totalCorrect += score;
+      totalQuestions += couponQuestions.length;
+      totalPlayed++; // Tell kun kuponger med fasit
+    }
 
     if (sub.is_winner) {
       wins++;
@@ -51,7 +56,7 @@ export const aggregatePlayerStats = (
   const avgScore = totalQuestions > 0 ? (totalCorrect / totalQuestions) * 100 : 0;
 
   return {
-    totalPlayed: submissions.length,
+    totalPlayed,
     totalCorrect,
     totalQuestions,
     avgScore,
