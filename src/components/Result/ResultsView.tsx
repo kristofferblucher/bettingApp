@@ -207,12 +207,9 @@ export default function ResultsView() {
         shadow="sm"
         p={4}
       >
-        <Heading size="md" mb={2} textAlign="center">
-          🏆 Resultater
+        <Heading size="md" mb={4} textAlign="center">
+          🏆 Resultater for kupongen: {coupon.title}
         </Heading>
-        <Text fontSize="sm" color="gray.600" mb={4} textAlign="center">
-          {coupon.title}
-        </Text>
 
         {scores.length === 0 ? (
           <Text color="gray.500" textAlign="center">
@@ -295,6 +292,9 @@ export default function ResultsView() {
                     {isWinner ? "🏅 " : ""}
                     {s.name}
                   </Heading>
+                  <Text fontSize="sm" color="gray.500" mt={1}>
+                    Kupongnavn: {coupon?.title}
+                  </Text>
                   {hasResults && (
                     <Badge
                       colorScheme={isWinner ? "green" : "blue"}

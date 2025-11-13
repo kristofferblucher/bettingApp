@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Box, Button, Input, Text, VStack } from "@chakra-ui/react";
+import { Box, Button, Input, Text, VStack, HStack } from "@chakra-ui/react";
 import AdminPanel from "./AdminPanel";
 
 export default function AdminGate() {
@@ -7,18 +7,54 @@ export default function AdminGate() {
   const [authorized, setAuthorized] = useState(false);
 
   const correctPin = "1886199820022004"; 
+  const ADMIN_VERSION = "v2"; // ⚠️ Endre denne når du vil sparke ut alle admin-brukere
 
   const handleSubmit = () => {
     if (pin === correctPin) {
       setAuthorized(true);
-      localStorage.setItem("isAdmin", "true"); // lagre for denne sesjonen
+      // Lagre med versjonsnummer
+      localStorage.setItem(`isAdmin_${ADMIN_VERSION}`, "true");
     } else {
       alert("Feil kode!");
     }
   };
 
-  if (authorized || localStorage.getItem("isAdmin") === "true") {
-    return <AdminPanel />;
+  const handleLogout = () => {
+    localStorage.removeItem(`isAdmin_${ADMIN_VERSION}`);
+    setAuthorized(false);
+  };
+
+  if (authorized || localStorage.getItem(`isAdmin_${ADMIN_VERSION}`) === "true") {
+    return (
+      <Box>
+        {/* Logout-knapp som fungerer godt på alle skjermstørrelser */}
+        <Box 
+          bg="white" 
+          p={{ base: 3, md: 4 }} 
+          borderBottomWidth="1px" 
+          borderColor="gray.200"
+          position="sticky"
+          top={0}
+          zIndex={10}
+          boxShadow="sm"
+        >
+          <HStack justify="space-between" align="center">
+            <Text fontWeight="bold" fontSize={{ base: "md", md: "lg" }}>
+              Admin Panel
+            </Text>
+            <Button 
+              colorScheme="red" 
+              variant="outline" 
+              size={{ base: "sm", md: "md" }}
+              onClick={handleLogout}
+            >
+              Logg ut
+            </Button>
+          </HStack>
+        </Box>
+        <AdminPanel />
+      </Box>
+    );
   }
 
   return (

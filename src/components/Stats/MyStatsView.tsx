@@ -15,7 +15,17 @@ import {
   Center,
   Button,
   useToast,
+  IconButton,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalCloseButton,
+  useDisclosure,
+  HStack,
 } from "@chakra-ui/react";
+import { InfoIcon } from "@chakra-ui/icons";
 import { supabase } from "../../database/supabaseClient";
 import { getDeviceId } from "../../utils/deviceUtils";
 import { aggregatePlayerStats } from "../../utils/statsUtils";
@@ -31,6 +41,14 @@ export default function MyStatsView() {
   const [isLoading, setIsLoading] = useState(true);
   const deviceId = getDeviceId();
   const toast = useToast();
+  
+  // Modal for generell info
+  const { isOpen: isGeneralOpen, onOpen: onGeneralOpen, onClose: onGeneralClose } = useDisclosure();
+  
+  // Modaler for individuelle stats
+  const { isOpen: isWinsOpen, onOpen: onWinsOpen, onClose: onWinsClose } = useDisclosure();
+  const { isOpen: isCorrectOpen, onOpen: onCorrectOpen, onClose: onCorrectClose } = useDisclosure();
+  const { isOpen: isAvgOpen, onOpen: onAvgOpen, onClose: onAvgClose } = useDisclosure();
 
   useEffect(() => {
     fetchMyStats();
@@ -137,9 +155,17 @@ export default function MyStatsView() {
   return (
     <Box p={6} bg="gray.50">
       <VStack spacing={6} align="stretch">
-        <Heading size="lg" textAlign="center">
-          📊 Min statistikk
-        </Heading>
+        <HStack justify="center" align="center" spacing={3}>
+          <Heading size="lg">📊 Min statistikk</Heading>
+          <IconButton
+            aria-label="Info om min statistikk"
+            icon={<InfoIcon />}
+            size="sm"
+            colorScheme="blue"
+            variant="ghost"
+            onClick={onGeneralOpen}
+          />
+        </HStack>
 
         <Button
           colorScheme="blue"
@@ -150,6 +176,67 @@ export default function MyStatsView() {
           🔄 Oppdater statistikk
         </Button>
 
+        {/* Store fremhevede cards */}
+        <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
+          {/* Antall seire - stor card */}
+          <Card bg="purple.50" borderWidth="2px" borderColor="purple.200" shadow="lg">
+            <CardBody textAlign="center" py={8}>
+              <VStack spacing={3}>
+                <HStack spacing={2} justify="center">
+                  <Text fontSize="lg" fontWeight="medium" color="gray.600">
+                    Antall seire
+                  </Text>
+                  <IconButton
+                    aria-label="Info om antall seire"
+                    icon={<InfoIcon />}
+                    size="xs"
+                    colorScheme="purple"
+                    variant="ghost"
+                    onClick={onWinsOpen}
+                  />
+                </HStack>
+                <Text fontSize="6xl" fontWeight="bold" color="purple.600">
+                  🏆 {stats.wins}
+                </Text>
+                <Text fontSize="sm" color="gray.500">
+                  Kuponger med best score
+                </Text>
+              </VStack>
+            </CardBody>
+          </Card>
+
+          {/* Riktige svar - stor card */}
+          <Card bg="green.50" borderWidth="2px" borderColor="green.200" shadow="lg">
+            <CardBody textAlign="center" py={8}>
+              <VStack spacing={3}>
+                <HStack spacing={2} justify="center">
+                  <Text fontSize="lg" fontWeight="medium" color="gray.600">
+                    Riktige svar
+                  </Text>
+                  <IconButton
+                    aria-label="Info om riktige svar"
+                    icon={<InfoIcon />}
+                    size="xs"
+                    colorScheme="green"
+                    variant="ghost"
+                    onClick={onCorrectOpen}
+                  />
+                </HStack>
+                <Text fontSize="6xl" fontWeight="bold" color="green.600">
+                  {stats.totalCorrect}
+                </Text>
+                <Text fontSize="md" color="gray.600" fontWeight="medium">
+                  av {stats.totalQuestions} spørsmål
+                </Text>
+                <Text fontSize="sm" color="gray.500">
+                  Totalt på tvers av alle kuponger
+                </Text>
+              </VStack>
+            </CardBody>
+          </Card>
+        </SimpleGrid>
+
+        {/* Mindre detalj-cards */}
         <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} spacing={6}>
           {/* Kuponger deltatt */}
           <Card>
@@ -162,24 +249,21 @@ export default function MyStatsView() {
             </CardBody>
           </Card>
 
-          {/* Riktige svar */}
-          <Card>
-            <CardBody>
-              <Stat>
-                <StatLabel>Riktige svar</StatLabel>
-                <StatNumber color="green.500">
-                  {stats.totalCorrect} / {stats.totalQuestions}
-                </StatNumber>
-                <StatHelpText>Totalt antall riktige</StatHelpText>
-              </Stat>
-            </CardBody>
-          </Card>
-
           {/* Gjennomsnittlig score */}
           <Card>
             <CardBody>
               <Stat>
-                <StatLabel>Gjennomsnittlig score</StatLabel>
+                <HStack spacing={2}>
+                  <StatLabel>Gjennomsnittlig score</StatLabel>
+                  <IconButton
+                    aria-label="Info om gjennomsnittlig score"
+                    icon={<InfoIcon />}
+                    size="xs"
+                    colorScheme="blue"
+                    variant="ghost"
+                    onClick={onAvgOpen}
+                  />
+                </HStack>
                 <StatNumber
                   color={
                     stats.avgScore >= 70
@@ -196,36 +280,85 @@ export default function MyStatsView() {
             </CardBody>
           </Card>
 
-          {/* Antall seire */}
-          <Card>
-            <CardBody>
-              <Stat>
-                <StatLabel>Antall seire</StatLabel>
-                <StatNumber color="purple.500">
-                  🏆 {stats.wins}
-                </StatNumber>
-                <StatHelpText>Kuponger med best score</StatHelpText>
-              </Stat>
-            </CardBody>
-          </Card>
         </SimpleGrid>
+      </VStack>
 
-        {/* Ekstra info */}
-        <Card>
-          <CardBody>
-            <VStack spacing={3} align="stretch">
-              <Heading size="md">Om din statistikk</Heading>
-              <Text color="gray.600">
+      {/* Generell Info Modal */}
+      <Modal isOpen={isGeneralOpen} onClose={onGeneralClose} isCentered>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Om din statistikk</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody pb={6}>
+            <VStack spacing={4} align="stretch">
+              <Text color="gray.600" fontSize="sm">
                 Din statistikk beregnes basert på alle kupongene du har deltatt på.
               </Text>
-              <Text color="gray.600">
-                En seier telles når du har flest riktige svar på en kupong.
+
+              <Text color="gray.500" fontSize="xs" fontStyle="italic">
+                Tips: Klikk på info-knappen (ⓘ) ved hver statistikk for å lære mer om
+                hvordan den beregnes.
+              </Text>
+            </VStack>
+          </ModalBody>
+        </ModalContent>
+      </Modal>
+
+      {/* Info Modal - Antall seire */}
+      <Modal isOpen={isWinsOpen} onClose={onWinsClose} isCentered>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>🏆 Antall seire</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody pb={6}>
+            <VStack spacing={3} align="stretch">
+              <Text color="gray.600" fontSize="sm">
+                En seier telles når du har flest riktige svar på en kupong
+                sammenlignet med alle andre spillere.
+              </Text>
+
+              <Text color="gray.600" fontSize="sm">
+                <strong>Hva skjer ved lik score?</strong>
+                <br />
                 Hvis flere spillere deler best score, teller det som seier for alle.
               </Text>
             </VStack>
-          </CardBody>
-        </Card>
-      </VStack>
+          </ModalBody>
+        </ModalContent>
+      </Modal>
+
+      {/* Info Modal - Riktige svar */}
+      <Modal isOpen={isCorrectOpen} onClose={onCorrectClose} isCentered>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>✅ Riktige svar</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody pb={6}>
+            <VStack spacing={3} align="stretch">
+              <Text color="gray.600" fontSize="sm">
+                Totalt antall riktige svar på tvers av alle kuponger du har deltatt på,
+                sammenlignet med totalt antall spørsmål du har besvart.
+              </Text>
+            </VStack>
+          </ModalBody>
+        </ModalContent>
+      </Modal>
+
+      {/* Info Modal - Gjennomsnittlig score */}
+      <Modal isOpen={isAvgOpen} onClose={onAvgClose} isCentered>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>📊 Gjennomsnittlig score</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody pb={6}>
+            <VStack spacing={3} align="stretch">
+              <Text color="gray.600" fontSize="sm">
+                Viser din gjennomsnittlige prestasjonen på tvers av alle kuponger.
+              </Text>
+            </VStack>
+          </ModalBody>
+        </ModalContent>
+      </Modal>
     </Box>
   );
 }

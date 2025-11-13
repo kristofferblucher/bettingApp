@@ -241,7 +241,7 @@ export default function GlobalStatsView() {
         <Card>
           <CardHeader>
             <HStack spacing={2} align="center">
-              <Heading size="md">📊 Topp 10 - Høyeste seiersprosent (%)</Heading>
+              <Heading size="md">📊 Topp 10 - Høyeste treffprosent (%)</Heading>
               <IconButton
                 aria-label="Info om seiersprosent"
                 icon={<InfoIcon />}
@@ -466,7 +466,7 @@ export default function GlobalStatsView() {
       <Modal isOpen={isAvgOpen} onClose={onAvgClose} isCentered>
         <ModalOverlay />
         <ModalContent>
-          <ModalHeader>📊 Høyeste seiersprosent</ModalHeader>
+          <ModalHeader>📊 Høyeste treffprosent</ModalHeader>
           <ModalCloseButton />
           <ModalBody pb={6}>
             <VStack spacing={3} align="stretch">
@@ -478,18 +478,8 @@ export default function GlobalStatsView() {
               <Text color="gray.600" fontSize="sm">
                 <strong>Hvordan beregnes prosenten?</strong>
                 <br />
-                Prosenten beregnes som: (totalt antall riktige svar / totalt antall
+                Prosenten beregnes slik: (totalt antall riktige svar / totalt antall
                 spørsmål besvart) × 100
-              </Text>
-
-              <Text color="gray.600" fontSize="sm">
-                <strong>Fargekoder:</strong>
-                <br />
-                • Grønn: ≥70% (veldig bra!)
-                <br />
-                • Gul: 50-69% (bra)
-                <br />
-                • Rød: &lt;50% (rom for forbedring)
               </Text>
             </VStack>
           </ModalBody>
