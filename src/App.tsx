@@ -33,9 +33,9 @@ function App() {
   };
 
   return (
-    <Box bg="gray.50" minH="100vh" p={6}>
+    <Box bg="gray.50" minH="100vh" p={2}>
       <VStack spacing={6} align="stretch">
-        <HStack spacing={4}>
+        <HStack spacing={4} pl={6} pr={6} >
           <Button
             colorScheme={view === "coupon" ? "blue" : "gray"}
             onClick={() => {
@@ -43,6 +43,8 @@ function App() {
               setSelectedCoupon(null);
             }}
           >
+
+            
             Kupong
           </Button>
           <Button

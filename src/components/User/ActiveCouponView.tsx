@@ -5,9 +5,6 @@ import {
   Heading,
   Text,
   VStack,
-  Radio,
-  RadioGroup,
-  Stack,
   useToast,
   HStack,
   Input,
@@ -282,10 +279,10 @@ export default function ActiveCouponView({ coupon, onBack }: ActiveCouponViewPro
   const hasSubmitted = submission !== null;
 
   return (
-    <Box p={6}>
-      <HStack mb={4} justify="space-between">
-        <Heading>{coupon.title}</Heading>
-        <Button variant="ghost" onClick={onBack}>
+    <Box p={{ base: 0, md: 6 }} px={{ base: 1, md: 6 }} py={{ base: 1, md: 6 }}>
+      <HStack mb={{ base: 2, md: 4 }} justify="space-between" flexWrap="wrap" gap={2}>
+        <Heading fontSize={{ base: "lg", md: "2xl" }}>{coupon.title}</Heading>
+        <Button variant="ghost" onClick={onBack} size={{ base: "sm", md: "md" }}>
           ← Tilbake til kuponger
         </Button>
       </HStack>
@@ -331,34 +328,72 @@ export default function ActiveCouponView({ coupon, onBack }: ActiveCouponViewPro
         </FormControl>
       )}
 
-      <VStack align="stretch" spacing={6} mt={6}>
+      <VStack align="stretch" spacing={{ base: 2, md: 6 }} mt={{ base: 2, md: 6 }}>
         {questions.length === 0 ? (
           <Text color="gray.500">Ingen spørsmål i denne kupongen enda.</Text>
         ) : (
           questions.map((q) => (
-            <Box key={q.id} p={4} bg="gray.50" borderRadius="md" shadow="sm">
-              <Text fontWeight="semibold" mb={2}>
+            <Box key={q.id} p={{ base: 1.5, md: 4 }} bg="white" borderRadius="md" shadow="sm" borderWidth="1px">
+              <Text fontWeight="semibold" mb={{ base: 1.5, md: 4 }} fontSize={{ base: "sm", md: "lg" }}>
                 {q.text}
               </Text>
-              <RadioGroup
-                onChange={(val) => handleAnswer(q.id, val)}
-                value={answers[q.id] || ""}
-              >
-                <Stack>
-                  {q.options.map((opt, i) => (
-                    <Radio
+              <HStack spacing={{ base: 1.5, md: 3 }} flexWrap="wrap">
+                {q.options.map((opt, i) => {
+                  const isSelected = answers[q.id] === opt;
+                  const isDisabled = !isBeforeDeadline || (hasSubmitted && !canEdit);
+                  
+                  // Ekstraher poeng fra alternativ-teksten hvis den finnes
+                  // F.eks. "Arsenal (3.0p)" → navn: "Arsenal", poeng: "3.0p"
+                  const match = opt.match(/^(.+?)\s*\(([^)]+)\)$/);
+                  const displayName = match ? match[1].trim() : opt;
+                  const points = match ? match[2] : null;
+                  
+                  return (
+                    <Button
                       key={i}
-                      value={opt}
-                      isDisabled={
-                        !isBeforeDeadline ||
-                        (hasSubmitted && !canEdit)
-                      }
+                      onClick={() => handleAnswer(q.id, opt)}
+                      isDisabled={isDisabled}
+                      size={{ base: "sm", md: "md" }}
+                      height="auto"
+                      minH={{ base: "32px", md: "auto" }}
+                      py={{ base: 1.5, md: 3 }}
+                      px={{ base: 1.5, md: 4 }}
+                      flex="1"
+                      minW={{ base: "90px", md: "130px" }}
+                      colorScheme={isSelected ? "blue" : "gray"}
+                      variant={isSelected ? "solid" : "outline"}
+                      borderWidth={isSelected ? "2px" : "1px"}
+                      borderColor={isSelected ? "blue.500" : "gray.300"}
+                      bg={isSelected ? "blue.500" : "white"}
+                      color={isSelected ? "white" : "gray.700"}
+                      _hover={{
+                        bg: isSelected ? "blue.600" : "gray.50",
+                        borderColor: isSelected ? "blue.600" : "blue.300",
+                      }}
+                      whiteSpace="normal"
+                      fontWeight={isSelected ? "bold" : "medium"}
                     >
-                      {opt}
-                    </Radio>
-                  ))}
-                </Stack>
-              </RadioGroup>
+                      <HStack justify="space-between" width="100%" spacing={{ base: 1, md: 2 }} align="center">
+                        <Text 
+                          fontSize={{ base: "2xs", sm: "xs", md: "md" }}
+                          textAlign="left"
+                        >
+                          {displayName}
+                        </Text>
+                        {points && (
+                          <Text 
+                            fontSize={{ base: "xs", sm: "sm", md: "lg" }} 
+                            fontWeight="bold"
+                            flexShrink={0}
+                          >
+                            {points}
+                          </Text>
+                        )}
+                      </HStack>
+                    </Button>
+                  );
+                })}
+              </HStack>
             </Box>
           ))
         )}

@@ -131,7 +131,7 @@ export default function MyStatsView() {
 
   if (stats.totalPlayed === 0) {
     return (
-      <Box p={6}>
+      <Box p={2}>
         <Card>
           <CardBody>
             <Center p={10}>
@@ -153,7 +153,7 @@ export default function MyStatsView() {
   }
 
   return (
-    <Box p={6} bg="gray.50">
+    <Box p={2} bg="gray.50">
       <VStack spacing={6} align="stretch">
         <HStack justify="center" align="center" spacing={3}>
           <Heading size="lg">📊 Min statistikk</Heading>

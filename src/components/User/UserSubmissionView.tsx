@@ -100,7 +100,7 @@ export default function UserSubmissionView({ coupon }: { coupon: Coupon }) {
     }
   
     return (
-      <Box p={4} bg="gray.50" borderRadius="md" shadow="sm">
+      <Box p={2} bg="gray.50" borderRadius="md" shadow="sm">
         <Heading size="md" mb={3}>
           Dine svar
         </Heading>

@@ -172,7 +172,7 @@ export default function AdminHome({ onSelect }: { onSelect: (coupon: Coupon) => 
   };
 
   return (
-    <Box p={6}>
+    <Box p={2}>
       <Heading size="lg" mb={4}>
         🧑‍💼 Adminpanel
       </Heading>
