@@ -65,13 +65,10 @@ export default function AdminView({ coupon, onBack }: AdminViewProps) {
     const updated = { ...results, [questionId]: value };
     setResults(updated);
 
-    // Konverter questionId til number for database
-    const questionIdNum = Number(questionId);
-
     const { data: existing } = await supabase
       .from("results")
       .select("id")
-      .eq("question_id", questionIdNum)
+      .eq("question_id", questionId)
       .eq("coupon_id", coupon.id)
       .maybeSingle();
 
@@ -84,11 +81,14 @@ export default function AdminView({ coupon, onBack }: AdminViewProps) {
       await supabase.from("results").insert([
         {
           coupon_id: coupon.id,
-          question_id: questionIdNum,
+          question_id: questionId,
           correct_answer: value,
         },
       ]);
     }
+
+    // Vent litt for å sikre at databasen er oppdatert
+    await new Promise(resolve => setTimeout(resolve, 100));
 
     // Oppdater vinnere når fasit endres
     await updateWinners(coupon.id);
@@ -142,6 +142,9 @@ export default function AdminView({ coupon, onBack }: AdminViewProps) {
       isClosable: true,
     });
 
+    // Vent litt for å sikre at databasen er oppdatert
+    await new Promise(resolve => setTimeout(resolve, 100));
+
     // Oppdater vinnere når fasit tømmes (alle blir ikke-vinnere)
     await updateWinners(coupon.id);
 
@@ -170,6 +173,9 @@ export default function AdminView({ coupon, onBack }: AdminViewProps) {
     }
     
     setQuestions(data || []);
+
+    // Vent litt for å sikre at alle fasit-svar er lagret i databasen
+    await new Promise(resolve => setTimeout(resolve, 200));
 
     // Beregn vinnere basert på fasit
     await updateWinners(coupon.id);
