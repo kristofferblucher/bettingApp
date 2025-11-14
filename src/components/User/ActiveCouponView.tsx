@@ -346,7 +346,14 @@ export default function ActiveCouponView({ coupon, onBack }: ActiveCouponViewPro
                   // F.eks. "Arsenal (3.0p)" → navn: "Arsenal", poeng: "3.0p"
                   const match = opt.match(/^(.+?)\s*\(([^)]+)\)$/);
                   const displayName = match ? match[1].trim() : opt;
-                  const points = match ? match[2] : null;
+                  
+                  // Hvis poeng finnes i teksten, bruk det. Hvis ikke, hent fra option_points eller sett 1p som standard
+                  let points = match ? match[2] : null;
+                  if (!points && q.option_points && q.option_points[i] !== undefined) {
+                    points = `${Math.round(q.option_points[i])}p`;
+                  } else if (!points) {
+                    points = "1p"; // Standard for manuelle spørsmål
+                  }
                   
                   return (
                     <Button
@@ -380,15 +387,13 @@ export default function ActiveCouponView({ coupon, onBack }: ActiveCouponViewPro
                         >
                           {displayName}
                         </Text>
-                        {points && (
-                          <Text 
-                            fontSize={{ base: "xs", sm: "sm", md: "lg" }} 
-                            fontWeight="bold"
-                            flexShrink={0}
-                          >
-                            {points}
-                          </Text>
-                        )}
+                        <Text 
+                          fontSize={{ base: "xs", sm: "sm", md: "lg" }} 
+                          fontWeight="bold"
+                          flexShrink={0}
+                        >
+                          {points}
+                        </Text>
                       </HStack>
                     </Button>
                   );
