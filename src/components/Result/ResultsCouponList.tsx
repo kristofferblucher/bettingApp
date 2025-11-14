@@ -11,6 +11,7 @@ import {
   Badge,
   Spinner,
   Center,
+  Stack,
 } from "@chakra-ui/react";
 import { supabase } from "../../database/supabaseClient";
 import type { Coupon } from "../../interfaces/interfaces";
@@ -118,9 +119,14 @@ export default function ResultsCouponList({ onSelect }: ResultsCouponListProps) 
               borderColor={hasPassed ? "gray.200" : "blue.300"}
             >
               <CardBody>
-                <HStack justify="space-between" align="center">
-                  <VStack align="start" spacing={1} flex="1">
-                    <HStack>
+                <Stack
+                  direction={{ base: "column", md: "row" }}
+                  justify={{ base: "flex-start", md: "space-between" }}
+                  align={{ base: "flex-start", md: "center" }}
+                  spacing={{ base: 3, md: 0 }}
+                >
+                  <VStack align="start" spacing={1} flex={{ base: "0", md: "1" }} w={{ base: "100%", md: "auto" }}>
+                    <HStack flexWrap="wrap">
                       <Heading size="md">{coupon.title}</Heading>
                       {hasFasit && (
                         <Badge colorScheme="green">Fasit lagt inn</Badge>
@@ -133,12 +139,13 @@ export default function ResultsCouponList({ onSelect }: ResultsCouponListProps) 
 
                   <Button
                     colorScheme="blue"
-                    size="md"
+                    size={{ base: "sm", md: "md" }}
                     onClick={() => onSelect(coupon)}
+                    alignSelf={{ base: "flex-end", md: "auto" }}
                   >
                     Se resultater
                   </Button>
-                </HStack>
+                </Stack>
               </CardBody>
             </Card>
           );

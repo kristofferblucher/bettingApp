@@ -54,6 +54,7 @@ export default function GlobalStatsView() {
   const { isOpen: isWinsOpen, onOpen: onWinsOpen, onClose: onWinsClose } = useDisclosure();
   const { isOpen: isAvgOpen, onOpen: onAvgOpen, onClose: onAvgClose } = useDisclosure();
   const { isOpen: isCorrectOpen, onOpen: onCorrectOpen, onClose: onCorrectClose } = useDisclosure();
+  const { isOpen: isPointsOpen, onOpen: onPointsOpen, onClose: onPointsClose } = useDisclosure();
 
   useEffect(() => {
     fetchGlobalStats();
@@ -123,7 +124,7 @@ export default function GlobalStatsView() {
     );
   }
 
-  // Lag tre forskjellige leaderboards med forskjellig sortering
+  // Lag fire forskjellige leaderboards med forskjellig sortering
   const topByWins = [...playersStats]
     .filter((p) => p.wins > 0) // Vis bare spillere med minst 1 seier
     .sort((a, b) => b.wins - a.wins)
@@ -137,6 +138,11 @@ export default function GlobalStatsView() {
   const topByTotalCorrect = [...playersStats]
     .filter((p) => p.totalCorrect > 0) // Vis bare spillere med minst 1 riktig
     .sort((a, b) => b.totalCorrect - a.totalCorrect)
+    .slice(0, 10);
+
+  const topByTotalPoints = [...playersStats]
+    .filter((p) => p.totalPoints > 0) // Vis bare spillere med minst 1 poeng
+    .sort((a, b) => b.totalPoints - a.totalPoints)
     .slice(0, 10);
 
   return (
@@ -263,7 +269,7 @@ export default function GlobalStatsView() {
                     <Tr>
                       <Th>Plassering</Th>
                       <Th>Spiller</Th>
-                      <Th>Gjennomsnitt</Th>
+                      <Th>Prosent</Th>
                     </Tr>
                   </Thead>
                   <Tbody>
@@ -397,6 +403,81 @@ export default function GlobalStatsView() {
           </CardBody>
         </Card>
 
+        {/* Leaderboard 4: Flest poeng totalt */}
+        <Card>
+          <CardHeader>
+            <HStack spacing={2} align="center">
+              <Heading size="md">⭐ Topp 10 - Flest poeng</Heading>
+              <IconButton
+                aria-label="Info om flest poeng"
+                icon={<InfoIcon />}
+                size="sm"
+                colorScheme="blue"
+                variant="ghost"
+                onClick={onPointsOpen}
+              />
+            </HStack>
+          </CardHeader>
+          <CardBody>
+            {topByTotalPoints.length === 0 ? (
+              <Text color="gray.500">Ingen poeng registrert enda.</Text>
+            ) : (
+              <TableContainer>
+                <Table variant="simple" size="md">
+                  <Thead bg="gray.100">
+                    <Tr>
+                      <Th>Plassering</Th>
+                      <Th>Spiller</Th>
+                      <Th>Totale poeng</Th>
+                    </Tr>
+                  </Thead>
+                  <Tbody>
+                    {topByTotalPoints.map((player, index) => {
+                      const isTopThree = index < 3;
+                      const medalEmoji =
+                        index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : "";
+
+                      return (
+                        <Tr
+                          key={player.name}
+                          bg={
+                            index === 0
+                              ? "yellow.50"
+                              : index === 1
+                              ? "gray.50"
+                              : index === 2
+                              ? "orange.50"
+                              : undefined
+                          }
+                          fontWeight={isTopThree ? "bold" : "normal"}
+                        >
+                          <Td>
+                            <Text fontSize="lg">
+                              {medalEmoji} {index + 1}.
+                            </Text>
+                          </Td>
+                          <Td>
+                            <Text isTruncated maxW="300px" title={player.name}>
+                              {player.name.length > 30
+                                ? `${player.name.slice(0, 25)}...`
+                                : player.name}
+                            </Text>
+                          </Td>
+                          <Td>
+                            <Badge colorScheme="blue" fontSize="lg">
+                              ⭐ {Math.round(player.totalPoints)}
+                            </Badge>
+                          </Td>
+                        </Tr>
+                      );
+                    })}
+                  </Tbody>
+                </Table>
+              </TableContainer>
+            )}
+          </CardBody>
+        </Card>
+
       </VStack>
 
       {/* Generell Info Modal */}
@@ -507,6 +588,38 @@ export default function GlobalStatsView() {
                 <br />
                 Tallene vises som "X / Y" hvor X er antall riktige svar og Y er totalt
                 antall spørsmål besvart.
+              </Text>
+            </VStack>
+          </ModalBody>
+        </ModalContent>
+      </Modal>
+
+      {/* Info Modal - Flest poeng */}
+      <Modal isOpen={isPointsOpen} onClose={onPointsClose} isCentered>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>⭐ Flest poeng</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody pb={6}>
+            <VStack spacing={3} align="stretch">
+              <Text color="gray.600" fontSize="sm">
+                Dette leaderboardet viser spillere rangert etter totalt antall poeng
+                samlet på tvers av alle kuponger.
+              </Text>
+              
+              <Text color="gray.600" fontSize="sm">
+                <strong>Hvordan beregnes poeng?</strong>
+                <br />
+                Hvert riktige svar gir poeng basert på vanskelighetsgrad. Spørsmål fra
+                Norsk Tipping får poeng basert på odds (høyere odds = flere poeng),
+                mens manuelle spørsmål gir standard 1 poeng per riktig svar.
+              </Text>
+
+              <Text color="gray.600" fontSize="sm">
+                <strong>Hvorfor poeng?</strong>
+                <br />
+                Poengsystemet gjør at vanskelige spørsmål veier tyngre enn enkle spørsmål,
+                noe som belønner spillere som tar risiko og tipper på underdogs.
               </Text>
             </VStack>
           </ModalBody>
