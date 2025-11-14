@@ -2,14 +2,16 @@ import { supabase } from "../database/supabaseClient";
 import type { Question, Submission } from "../interfaces/interfaces";
 
 /**
- * Beregn poeng for en spesifikk submission
+ * Beregn score for en spesifikk submission
+ * Returnerer både antall riktige og total poengsum
  */
 export const calculatePlayerScore = (
   submission: Submission,
   questions: Question[],
   results: Array<{ question_id: number; correct_answer: string }>
-): number => {
+): { correct: number; points: number } => {
   let correct = 0;
+  let totalPoints = 0;
 
   questions.forEach((q) => {
     const correctAnswer = results.find((r) => r.question_id === q.id)?.correct_answer;
@@ -17,10 +19,22 @@ export const calculatePlayerScore = (
     
     if (correctAnswer && playerAnswer === correctAnswer) {
       correct++;
+      
+      // Beregn poeng: bruk option_points hvis det finnes, ellers 1 poeng
+      if (q.option_points && q.options) {
+        const optionIndex = q.options.indexOf(correctAnswer);
+        if (optionIndex !== -1 && q.option_points[optionIndex] !== undefined) {
+          totalPoints += q.option_points[optionIndex];
+        } else {
+          totalPoints += 1; // Fallback hvis option_points mangler for dette alternativet
+        }
+      } else {
+        totalPoints += 1; // Standard 1 poeng for spørsmål uten option_points
+      }
     }
   });
 
-  return correct;
+  return { correct, points: totalPoints };
 };
 
 /**
@@ -32,6 +46,7 @@ export const aggregatePlayerStats = (
   allResults: Array<{ question_id: number; correct_answer: string; coupon_id: number }>
 ) => {
   let totalCorrect = 0;
+  let totalPoints = 0;
   let totalQuestions = 0;
   let totalPlayed = 0;
   let wins = 0;
@@ -43,7 +58,8 @@ export const aggregatePlayerStats = (
     // Kun tell submissions fra kuponger som har fasit
     if (couponResults.length > 0) {
       const score = calculatePlayerScore(sub, couponQuestions, couponResults);
-      totalCorrect += score;
+      totalCorrect += score.correct;
+      totalPoints += score.points;
       totalQuestions += couponQuestions.length;
       totalPlayed++; // Tell kun kuponger med fasit
     }
@@ -58,6 +74,7 @@ export const aggregatePlayerStats = (
   return {
     totalPlayed,
     totalCorrect,
+    totalPoints,
     totalQuestions,
     avgScore,
     wins,
@@ -187,23 +204,23 @@ export const updateWinners = async (couponId: number | string) => {
       return;
     }
 
-    // Beregn score for alle submissions
+    // Beregn score for alle submissions (basert på poeng)
     console.log("🧮 Beregner score for submissions...");
     const scores = submissions.map((sub: Submission) => {
-      const score = calculatePlayerScore(sub, questions || [], results || []);
-      console.log(`  Spiller ${sub.player_name || sub.device_id.slice(0, 8)}: ${score} poeng`);
+      const scoreResult = calculatePlayerScore(sub, questions || [], results || []);
+      console.log(`  Spiller ${sub.player_name || sub.device_id.slice(0, 8)}: ${scoreResult.correct} riktige, ${scoreResult.points} poeng`);
       return {
         id: sub.id,
-        score,
+        points: scoreResult.points,
       };
     });
 
-    // Finn beste score
-    const topScore = Math.max(...scores.map((s) => s.score));
-    console.log("🏆 Beste score:", topScore);
+    // Finn beste poengsum
+    const topScore = Math.max(...scores.map((s) => s.points));
+    console.log("🏆 Beste poengsum:", topScore);
 
-    // Finn alle submissions med beste score
-    const winnerIds = scores.filter((s) => s.score === topScore).map((s) => s.id);
+    // Finn alle submissions med beste poengsum
+    const winnerIds = scores.filter((s) => s.points === topScore).map((s) => s.id);
     console.log("👥 Vinner-IDer:", winnerIds);
 
     // Oppdater is_winner for alle submissions

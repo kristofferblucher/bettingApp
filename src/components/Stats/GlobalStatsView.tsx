@@ -36,6 +36,7 @@ interface PlayerStat {
   name: string;
   totalPlayed: number;
   totalCorrect: number;
+  totalPoints: number;
   totalQuestions: number;
   avgScore: number;
   wins: number;

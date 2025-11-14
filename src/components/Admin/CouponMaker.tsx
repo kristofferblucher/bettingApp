@@ -20,6 +20,7 @@ import validate from "../../utils/couponMakerUtils";
 export default function CouponMaker({ couponId, onQuestionAdded }: CouponMakerProps) {
   const [questionText, setQuestionText] = useState("");
   const [options, setOptions] = useState<string[]>(["", ""]); // starter med 2 felt
+  const [optionPoints, setOptionPoints] = useState<string[]>(["", ""]); // poeng per alternativ (tom string = standard 1p)
   const [questions, setQuestions] = useState<Question[]>([]);
   const toast = useToast();
 
@@ -33,6 +34,7 @@ export default function CouponMaker({ couponId, onQuestionAdded }: CouponMakerPr
     setQuestions([]);
     setQuestionText("");
     setOptions(["", ""]);
+    setOptionPoints(["", ""]);
 
     const fetchQuestions = async () => {
       const { data, error } = await supabase
@@ -59,9 +61,17 @@ export default function CouponMaker({ couponId, onQuestionAdded }: CouponMakerPr
     setOptions(updated);
   };
 
+  // Oppdater poeng for et alternativ
+  const updateOptionPoints = (index: number, value: string) => {
+    const updated = [...optionPoints];
+    updated[index] = value;
+    setOptionPoints(updated);
+  };
+
   // Legg til et nytt svarfelt
   const addOption = () => {
     setOptions([...options, ""]);
+    setOptionPoints([...optionPoints, ""]); // legg til tomt poeng-felt
   };
 
 
@@ -69,6 +79,7 @@ export default function CouponMaker({ couponId, onQuestionAdded }: CouponMakerPr
   const removeOption = (index: number) => {
     if (options.length <= 2) return;
     setOptions(options.filter((_, i) => i !== index));
+    setOptionPoints(optionPoints.filter((_, i) => i !== index));
   };
 
 
@@ -89,13 +100,34 @@ export default function CouponMaker({ couponId, onQuestionAdded }: CouponMakerPr
       return;
     }
   
+    // Bygg option_points array: hvis tomt/ugyldig, bruk 1 poeng
+    const pointsArray: number[] = filteredOptions.map((_, index) => {
+      const pointValue = optionPoints[index]?.trim();
+      if (!pointValue) return 1; // Standard: 1 poeng
+      
+      const parsed = parseFloat(pointValue);
+      if (isNaN(parsed) || parsed <= 0) {
+        toast({
+          title: "Ugyldig poengverdi",
+          description: `Alternativ ${index + 1}: "${pointValue}" er ikke et gyldig tall > 0. Bruker 1 poeng.`,
+          status: "warning",
+          duration: 3000,
+          isClosable: true,
+        });
+        return 1;
+      }
+      return parsed;
+    });
+  
     // Lagre i Supabase
     const { data, error } = await supabase
       .from("questions")
       .insert([{ 
         coupon_id: couponId,
         text: questionText, 
-        options: filteredOptions }])
+        options: filteredOptions,
+        option_points: pointsArray, // Lagre poeng
+      }])
       .select();
   
     if (error) {
@@ -115,6 +147,7 @@ export default function CouponMaker({ couponId, onQuestionAdded }: CouponMakerPr
     setQuestions((prev) => [...prev, newQuestion]);
     setQuestionText("");
     setOptions(["", ""]);
+    setOptionPoints(["", ""]); // Nullstill poeng
   
     toast({
       title: "Spørsmål lagt til!",
@@ -164,14 +197,29 @@ export default function CouponMaker({ couponId, onQuestionAdded }: CouponMakerPr
           value={questionText}
           onChange={(e) => setQuestionText(e.target.value)}
         />
+        
+        <Text fontSize="sm" color="gray.600">
+          💡 La poeng-feltet stå tomt for å gi 1 poeng. Sett egne verdier for andre poengsummer.
+        </Text>
 
         <VStack spacing={2} align="stretch">
           {options.map((opt, i) => (
-            <HStack key={i}>
+            <HStack key={i} spacing={2}>
               <Input
                 placeholder={`Alternativ ${i + 1}`}
                 value={opt}
                 onChange={(e) => updateOption(i, e.target.value)}
+                flex="3"
+              />
+              <Input
+                placeholder="Poeng (1)"
+                value={optionPoints[i]}
+                onChange={(e) => updateOptionPoints(i, e.target.value)}
+                type="number"
+                step="0.1"
+                min="0.1"
+                w="100px"
+                size="sm"
               />
               {options.length > 2 && (
                 <IconButton
@@ -214,7 +262,17 @@ export default function CouponMaker({ couponId, onQuestionAdded }: CouponMakerPr
           <List spacing={2}>
             {questions.map((q) => (
               <ListItem key={q.id}>
-                <strong>{q.text}</strong> — ({q.options.join(", ")})
+                <strong>{q.text}</strong> — 
+                {q.options.map((opt, i) => {
+                  const points = q.option_points?.[i];
+                  return (
+                    <span key={i}>
+                      {i > 0 ? ", " : " "}
+                      {opt}
+                      {points ? ` (${points}p)` : " (1p)"}
+                    </span>
+                  );
+                })}
               </ListItem>
             ))}
           </List>

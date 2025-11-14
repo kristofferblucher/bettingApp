@@ -167,22 +167,43 @@ export default function AdminView({ coupon, onBack }: AdminViewProps) {
         status: "warning",
         duration: 2000,
       });
+      setCouponTitle(coupon.title); // Reset til original tittel
       return;
     }
 
-    const { error } = await supabase
+    console.log('Oppdaterer kupongnavn:', { couponId: coupon.id, newTitle: newTitle.trim() });
+
+    const { data, error } = await supabase
       .from('coupons')
       .update({ title: newTitle.trim() })
-      .eq('id', coupon.id);
+      .eq('id', coupon.id)
+      .select();
+
+    console.log('Update coupon response:', { data, error });
 
     if (error) {
       console.error('Feil ved oppdatering av kupong:', error);
       toast({
         title: "Kunne ikke oppdatere kupongnavn",
-        description: error.message,
+        description: error.message || "Sjekk RLS policies i Supabase.",
         status: "error",
-        duration: 3000,
+        duration: 5000,
+        isClosable: true,
       });
+      setCouponTitle(coupon.title); // Reset til original tittel
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      console.warn('Ingen rader ble oppdatert. Sjekk RLS policies.');
+      toast({
+        title: "Kunne ikke oppdatere kupongnavn",
+        description: "Ingen endringer ble gjort. Sjekk tilganger i databasen.",
+        status: "warning",
+        duration: 5000,
+        isClosable: true,
+      });
+      setCouponTitle(coupon.title); // Reset til original tittel
       return;
     }
 

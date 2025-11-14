@@ -34,6 +34,7 @@ export default function MyStatsView() {
   const [stats, setStats] = useState({
     totalPlayed: 0,
     totalCorrect: 0,
+    totalPoints: 0,
     totalQuestions: 0,
     avgScore: 0,
     wins: 0,

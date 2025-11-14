@@ -102,13 +102,28 @@ export default function ResultsView({ coupon, onBack }: ResultsViewProps) {
       // Beregn poeng for hver submission
       const allScores: ScoreWithId[] = (sData || []).map((submission: Submission) => {
         let correct = 0;
+        let totalPoints = 0;
         const total = qData?.length || 0;
 
         if (hasFasit && submission.answers) {
           qData?.forEach((q) => {
             const fasitSvar = resultMap[String(q.id)];
             const spillerSvar = submission.answers[q.id];
-            if (fasitSvar && spillerSvar === fasitSvar) correct++;
+            if (fasitSvar && spillerSvar === fasitSvar) {
+              correct++;
+              
+              // Beregn poeng: bruk option_points hvis det finnes, ellers 1 poeng
+              if (q.option_points && q.options) {
+                const optionIndex = q.options.indexOf(fasitSvar);
+                if (optionIndex !== -1 && q.option_points[optionIndex] !== undefined) {
+                  totalPoints += q.option_points[optionIndex];
+                } else {
+                  totalPoints += 1; // Fallback hvis option_points mangler for dette alternativet
+                }
+              } else {
+                totalPoints += 1; // Standard 1 poeng for spørsmål uten option_points
+              }
+            }
           });
         }
 
@@ -134,13 +149,18 @@ export default function ResultsView({ coupon, onBack }: ResultsViewProps) {
           total,
           answers: answersAsString,
           submissionId: submission.id,
+          points: totalPoints,
         };
       });
 
-      if (hasFasit) allScores.sort((a, b) => b.correct - a.correct);
+      // Sorter etter poeng (høyest først), deretter etter antall riktige
+      if (hasFasit) allScores.sort((a, b) => {
+        if (b.points !== a.points) return b.points - a.points;
+        return b.correct - a.correct;
+      });
 
-      const best = hasFasit && allScores.length > 0 ? allScores[0].correct : 0;
-      setTopScore(best);
+      const bestPoints = hasFasit && allScores.length > 0 ? allScores[0].points : 0;
+      setTopScore(bestPoints);
       setScores(allScores);
     } catch (err: any) {
       console.error("Feil ved lasting av resultater:", err);
@@ -156,10 +176,6 @@ export default function ResultsView({ coupon, onBack }: ResultsViewProps) {
 
   return (
     <Box>
-      <Button onClick={onBack} mb={4} variant="outline">
-        ← Tilbake til liste
-      </Button>
-      
       <Flex
         p={6}
         gap={8}
@@ -174,12 +190,18 @@ export default function ResultsView({ coupon, onBack }: ResultsViewProps) {
           w={{ base: "100%", lg: "auto" }}
           minW={{ base: "auto", lg: "300px" }}
           maxW={{ base: "100%", lg: "360px" }}
-          bg="white"
-          borderWidth="1px"
-          borderRadius="md"
-          shadow="sm"
-          p={4}
         >
+          <Button onClick={onBack} mb={4} variant="outline">
+            ← Tilbake 
+          </Button>
+          
+          <Box
+            bg="white"
+            borderWidth="1px"
+            borderRadius="md"
+            shadow="sm"
+            p={4}
+          >
           <Heading size="md" mb={4} textAlign="center">
             🏆 Resultater for kupongen: {coupon.title}
           </Heading>
@@ -194,7 +216,8 @@ export default function ResultsView({ coupon, onBack }: ResultsViewProps) {
               <Thead bg="gray.100">
                 <Tr>
                   <Th>Navn</Th>
-                  <Th>Status</Th>
+                  <Th textAlign="center">Antall rette</Th>
+                  <Th textAlign="center">Poeng</Th>
                 </Tr>
               </Thead>
               <Tbody>
@@ -202,20 +225,29 @@ export default function ResultsView({ coupon, onBack }: ResultsViewProps) {
                   <Tr
                     key={s.submissionId}
                     bg={
-                      hasResults && s.correct === topScore ? "green.50" : undefined
+                      hasResults && s.points === topScore ? "green.50" : undefined
                     }
                     fontWeight={
-                      hasResults && s.correct === topScore ? "bold" : "normal"
+                      hasResults && s.points === topScore ? "bold" : "normal"
                     }
                   >
                     <Td>{s.name}</Td>
-                    <Td>
+                    <Td textAlign="center">
                       {hasResults ? (
                         <Text>
                           {s.correct} / {s.total}
                         </Text>
                       ) : (
                         <Text color="gray.500">Venter på resultater...</Text>
+                      )}
+                    </Td>
+                    <Td textAlign="center">
+                      {hasResults ? (
+                        <Text fontWeight="bold" color="blue.600">
+                          {Math.round(s.points)}
+                        </Text>
+                      ) : (
+                        <Text color="gray.400">-</Text>
                       )}
                     </Td>
                   </Tr>
@@ -228,6 +260,7 @@ export default function ResultsView({ coupon, onBack }: ResultsViewProps) {
         <Button mt={4} colorScheme="blue" w="full" onClick={refresh}>
           Oppdater resultater
         </Button>
+        </Box>
       </Box>
 
   
@@ -248,7 +281,7 @@ export default function ResultsView({ coupon, onBack }: ResultsViewProps) {
       >
         <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
           {scores.map((s) => {
-            const isWinner = hasResults && s.correct === topScore;
+            const isWinner = hasResults && s.points === topScore;
 
             return (
               <Card
@@ -269,12 +302,19 @@ export default function ResultsView({ coupon, onBack }: ResultsViewProps) {
                     Kupongnavn: {coupon?.title}
                   </Text>
                   {hasResults && (
-                    <Badge
-                      colorScheme={isWinner ? "green" : "blue"}
-                      mt={1}
-                    >
-                      {s.correct} av {s.total} riktige
-                    </Badge>
+                    <Stack direction="row" spacing={2} justify="center" mt={2}>
+                      <Badge
+                        colorScheme={isWinner ? "green" : "blue"}
+                      >
+                        {s.correct} av {s.total} riktige
+                      </Badge>
+                      <Badge
+                        colorScheme="purple"
+                        fontSize="md"
+                      >
+                        {Math.round(s.points)} poeng
+                      </Badge>
+                    </Stack>
                   )}
                 </CardHeader>
                 <CardBody>

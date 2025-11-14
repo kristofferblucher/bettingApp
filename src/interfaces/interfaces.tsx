@@ -32,6 +32,7 @@ export interface PlayerScore {
   correct: number;
   total: number;
   answers: Record<string, string>;
+  points: number;
 }
 
 // ============================================
