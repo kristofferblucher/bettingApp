@@ -325,6 +325,30 @@ export default function ResultsView({ coupon, onBack }: ResultsViewProps) {
                       const isCorrect =
                         hasResults && spillerSvar === fasitSvar;
 
+                      // Funksjon for å ekstrahere navn og poeng fra svar-tekst
+                      const extractNameAndPoints = (answer: string, question: Question) => {
+                        if (!answer) return { name: "-", points: null };
+                        
+                        // Sjekk om svaret allerede har poeng i teksten (f.eks. "Arsenal (3.0p)")
+                        const match = answer.match(/^(.+?)\s*\(([^)]+)\)$/);
+                        if (match) {
+                          return { name: match[1].trim(), points: match[2] };
+                        }
+                        
+                        // Hvis ikke, finn poeng fra option_points
+                        const optionIndex = question.options?.findIndex(opt => opt === answer);
+                        if (optionIndex !== -1 && question.option_points && question.option_points[optionIndex] !== undefined) {
+                          const points = Math.round(question.option_points[optionIndex]);
+                          return { name: answer, points: `${points}p` };
+                        }
+                        
+                        // Standard: 1p for manuelle spørsmål
+                        return { name: answer, points: "1p" };
+                      };
+
+                      const playerAnswer = extractNameAndPoints(spillerSvar, q);
+                      const correctAnswer = extractNameAndPoints(fasitSvar, q);
+
                       return (
                         <Box key={q.id}>
                           <Text fontWeight="bold">{q.text}</Text>
@@ -338,13 +362,24 @@ export default function ResultsView({ coupon, onBack }: ResultsViewProps) {
                                     : "red.500"
                                   : "black"
                               }
+                              fontWeight="semibold"
                             >
-                              {spillerSvar ?? "-"}
+                              {playerAnswer.name}
+                              {playerAnswer.points && (
+                                <Text as="span" fontSize="sm" ml={1} opacity={0.8}>
+                                  ({playerAnswer.points})
+                                </Text>
+                              )}
                             </Text>
                           </Text>
                           {hasResults && (
                             <Text fontSize="sm" color="gray.600">
-                              Fasit: {fasitSvar ?? "-"}
+                              Fasit: {correctAnswer.name}
+                              {correctAnswer.points && (
+                                <Text as="span" fontSize="sm" ml={1}>
+                                  ({correctAnswer.points})
+                                </Text>
+                              )}
                             </Text>
                           )}
                         </Box>
